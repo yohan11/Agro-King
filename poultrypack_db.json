@@ -1,0 +1,33 @@
+{
+  "farmers": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "phone": "123456789",
+      "location": "Lagos, Nigeria",
+      "farm_size": 500
+    }
+  ],
+  "poultry_packs": [
+    {
+      "pack_id": 1,
+      "name": "Starter Pack",
+      "number_of_chicks": 100,
+      "feed_schedule": "[{\"day\":1,\"items\":{\"starter_feed_bags\":1}},{\"day\":15,\"items\":{\"grower_feed_bags\":2}},{\"day\":30,\"items\":{\"grower_feed_bags\":2}},{\"day\":40,\"items\":{\"finisher_feed_bags\":5}}]",
+      "vaccines_included": "[{\"day\":7,\"name\":\"Newcastle\"},{\"day\":14,\"name\":\"Gumboro\"}]",
+      "equipment_included": "[]"
+    }
+  ],
+  "poultry_batches": [],
+  "deliveries": [],
+  "inventory": [
+    {
+      "id": 1,
+      "chicks_available": 5000,
+      "starter_feed_bags": 200,
+      "grower_feed_bags": 500,
+      "finisher_feed_bags": 500,
+      "vaccines_stock": 1000
+    }
+  ]
+}

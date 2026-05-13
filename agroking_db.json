@@ -1,0 +1,281 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "role": "Admin",
+      "username": "admin",
+      "password": "password123",
+      "name": "AGRO KING Admin",
+      "phone": "000000000",
+      "location": "HQ"
+    },
+    {
+      "id": 2,
+      "role": "Farmer",
+      "username": "yohan",
+      "password": "127932",
+      "name": "mbih",
+      "phone": "697590568",
+      "location": "sable, Douala"
+    },
+    {
+      "id": 3,
+      "role": "Farmer",
+      "username": "paul",
+      "password": "pass",
+      "name": "Eleveur Paul",
+      "phone": "68000",
+      "location": "Douala"
+    },
+    {
+      "id": 4,
+      "role": "Farmer",
+      "username": "Bright ",
+      "password": "ashton23",
+      "name": "Ashton ",
+      "phone": "675780955",
+      "location": "Nyalla kambo "
+    }
+  ],
+  "orders": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "chicks": 2,
+      "delivery_location": "SABLE , douala",
+      "preferred_delivery_date": "2026-04-15",
+      "status": "Delivered",
+      "created_at": "2026-04-15T15:46:33.486Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "chicks": 6,
+      "delivery_location": "stryui",
+      "preferred_delivery_date": "2026-04-15",
+      "status": "Delivered",
+      "created_at": "2026-04-15T15:53:40.547Z"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "pack_id": 500,
+      "chicks": 500,
+      "delivery_location": "logpom",
+      "status": "Livrée",
+      "created_at": "2026-04-16T08:47:05.631Z"
+    },
+    {
+      "id": 4,
+      "user_id": 3,
+      "chicks": 111,
+      "delivery_location": "PK14",
+      "status": "Livrée",
+      "created_at": "2026-04-16T09:09:02.453Z"
+    },
+    {
+      "id": 5,
+      "user_id": 2,
+      "chicks": 106,
+      "delivery_location": "sable, douala",
+      "coordinates": {
+        "lat": 4.081670381585708,
+        "lng": 9.728065472293105
+      },
+      "status": "Livrée",
+      "created_at": "2026-04-16T10:02:29.458Z"
+    },
+    {
+      "id": 6,
+      "user_id": 2,
+      "chicks": 36,
+      "delivery_location": "sable, douala",
+      "coordinates": {
+        "lat": 4.081755848896674,
+        "lng": 9.728139039604919
+      },
+      "status": "Livrée",
+      "created_at": "2026-04-16T10:03:07.083Z"
+    },
+    {
+      "id": 7,
+      "user_id": 2,
+      "chicks": 170,
+      "delivery_location": "Makepe",
+      "coordinates": {
+        "lat": 4.081709341199127,
+        "lng": 9.727951691523552
+      },
+      "status": "Livrée",
+      "created_at": "2026-04-17T08:12:17.527Z",
+      "paid": true
+    },
+    {
+      "id": 8,
+      "user_id": 4,
+      "chicks": 250,
+      "delivery_location": "Makepe",
+      "coordinates": {
+        "lat": 4.0817594,
+        "lng": 9.7277428
+      },
+      "status": "Livrée",
+      "created_at": "2026-04-17T08:15:57.796Z",
+      "paid": true
+    },
+    {
+      "id": 9,
+      "user_id": 2,
+      "chicks": 21,
+      "delivery_location": "SABLE SIU",
+      "coordinates": {
+        "lat": 4.081849296662754,
+        "lng": 9.72811458692892
+      },
+      "status": "Livrée",
+      "created_at": "2026-04-27T12:30:59.515Z",
+      "paid": true
+    },
+    {
+      "id": 10,
+      "user_id": 2,
+      "chicks": 100,
+      "pack_type": "Pack 100 poussins",
+      "delivery_location": "istama",
+      "delivery_date": "2026-04-09",
+      "coordinates": {
+        "lat": 4.081914882105332,
+        "lng": 9.728034306667647
+      },
+      "status": "Confirmée",
+      "created_at": "2026-04-27T13:22:52.243Z"
+    },
+    {
+      "id": 11,
+      "user_id": 2,
+      "chicks": 124,
+      "pack_type": "Pack Sur Mesure",
+      "delivery_location": "PK 16",
+      "delivery_date": "2026-04-27",
+      "next_bags_delivery_preference": "Date demandée: 2026-05-09",
+      "coordinates": {
+        "lat": 4.081488115027995,
+        "lng": 9.727925252733511
+      },
+      "status": "En attente",
+      "created_at": "2026-04-27T15:50:30.591Z"
+    }
+  ],
+  "cycles": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "order_id": 1,
+      "chicks": 2,
+      "start_date": "2026-04-16T07:28:03.799Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "order_id": 2,
+      "chicks": 6,
+      "start_date": "2026-04-16T07:28:37.737Z"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "order_id": 3,
+      "chicks": 500,
+      "pack_id": 500,
+      "start_date": "2026-04-16T08:47:43.093Z"
+    },
+    {
+      "id": 4,
+      "user_id": 3,
+      "order_id": 4,
+      "chicks": 111,
+      "pack_id": 111,
+      "start_date": "2026-04-16T09:12:50.497Z"
+    },
+    {
+      "id": 5,
+      "user_id": 2,
+      "order_id": 5,
+      "chicks": 106,
+      "pack_id": 106,
+      "start_date": "2026-04-16T10:08:56.457Z"
+    },
+    {
+      "id": 6,
+      "user_id": 2,
+      "order_id": 6,
+      "chicks": 36,
+      "pack_id": 36,
+      "start_date": "2026-04-17T07:11:21.155Z"
+    },
+    {
+      "id": 7,
+      "user_id": 2,
+      "order_id": 7,
+      "chicks": 170,
+      "pack_id": 170,
+      "start_date": "2026-04-17T08:12:51.714Z"
+    },
+    {
+      "id": 8,
+      "user_id": 2,
+      "order_id": 7,
+      "chicks": 170,
+      "pack_id": 170,
+      "start_date": "2026-04-17T08:12:51.729Z"
+    },
+    {
+      "id": 9,
+      "user_id": 4,
+      "order_id": 8,
+      "chicks": 250,
+      "pack_id": 250,
+      "start_date": "2026-04-17T08:16:17.216Z"
+    },
+    {
+      "id": 10,
+      "user_id": 2,
+      "order_id": 9,
+      "chicks": 21,
+      "pack_id": 21,
+      "start_date": "2026-04-27T12:32:15.007Z"
+    }
+  ],
+  "milieus": [
+    {
+      "id": 1,
+      "name": "sable, douala",
+      "lat": 4.081670381585708,
+      "lng": 9.728065472293105
+    },
+    {
+      "id": 2,
+      "name": "Makepe",
+      "lat": 4.081709341199127,
+      "lng": 9.727951691523552
+    },
+    {
+      "id": 3,
+      "name": "SABLE SIU",
+      "lat": 4.081849296662754,
+      "lng": 9.72811458692892
+    },
+    {
+      "id": 4,
+      "name": "istama",
+      "lat": 4.081914882105332,
+      "lng": 9.728034306667647
+    },
+    {
+      "id": 5,
+      "name": "PK 16",
+      "lat": 4.081488115027995,
+      "lng": 9.727925252733511
+    }
+  ]
+}

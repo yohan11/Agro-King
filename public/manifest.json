@@ -1,0 +1,21 @@
+{
+  "name": "AGRO KING",
+  "short_name": "AgroKing",
+  "description": "Système de commande et suivi pour l'élevage de volailles",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2E7D32",
+  "icons": [
+    {
+      "src": "/logo.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
