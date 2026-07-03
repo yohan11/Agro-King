@@ -7,6 +7,7 @@ export default function FarmerDashboard() {
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [cycles, setCycles] = useState([]);
+  const [agrocamStock, setAgrocamStock] = useState(null);
   
   // Order flow state
   const [selectedPack, setSelectedPack] = useState(null);
@@ -105,6 +106,16 @@ export default function FarmerDashboard() {
     );
   };
 
+  const fetchOrders = async () => setOrders(await (await fetch('/api/orders')).json());
+  const fetchCycles = async () => setCycles(await (await fetch('/api/cycles')).json());
+  const fetchStock = async () => {
+    const res = await fetch('/api/agrocam');
+    if (res.ok) {
+      const data = await res.json();
+      setAgrocamStock(data.totalAvailable);
+    }
+  };
+
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
       if (!data.user || data.user.role !== 'Farmer') {
@@ -113,19 +124,18 @@ export default function FarmerDashboard() {
         setUser(data.user);
         fetchOrders();
         fetchCycles();
+        fetchStock();
       }
     });
 
     const interval = setInterval(() => {
       fetchOrders();
       fetchCycles();
+      fetchStock();
     }, 5000);
 
     return () => clearInterval(interval);
   }, [router]);
-
-  const fetchOrders = async () => setOrders(await (await fetch('/api/orders')).json());
-  const fetchCycles = async () => setCycles(await (await fetch('/api/cycles')).json());
 
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
@@ -142,7 +152,7 @@ export default function FarmerDashboard() {
     let chicksCount = selectedPack.id === 'custom' ? Number(customChicks) : selectedPack.chicks;
     let pref = nextDeliveryPref === 'date' ? `Date demandée: ${nextDeliveryDate}` : 'Rappels automatiques activés';
     
-    await fetch('/api/orders', {
+    const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -154,16 +164,23 @@ export default function FarmerDashboard() {
         coordinates 
       })
     });
-    setDeliveryLocation(''); 
-    setDeliveryDate('');
-    setCustomChicks('');
-    setNextDeliveryDate('');
-    setNextDeliveryPref('auto');
-    setSelectedPack(null);
-    setCoordinates(null);
-    setShowPayment(false);
-    fetchOrders();
-    alert('Paiement reporté et commande confirmée avec succès !');
+
+    if (res.ok) {
+      setDeliveryLocation(''); 
+      setDeliveryDate('');
+      setCustomChicks('');
+      setNextDeliveryDate('');
+      setNextDeliveryPref('auto');
+      setSelectedPack(null);
+      setCoordinates(null);
+      setShowPayment(false);
+      fetchOrders();
+      fetchStock();
+      alert('Paiement reporté et commande confirmée avec succès !');
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Erreur lors de la commande.');
+    }
   };
 
   const handleRestockRequest = async (cycle) => {
@@ -196,7 +213,10 @@ export default function FarmerDashboard() {
       <div className="flex justify-between items-center mb-4 mt-2">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <img src="/logo.jpeg" alt="AGRO KING Logo" style={{ width: '45px', height: '45px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-primary)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
-          <h1 style={{color: 'var(--accent-secondary)', fontSize: '1.25rem', margin: 0}}>Bonjour, {user.name}</h1>
+          <div>
+            <h1 style={{color: 'var(--accent-secondary)', fontSize: '1.25rem', margin: 0}}>Bonjour, {user.name}</h1>
+            {user.unique_id && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ID: {user.unique_id}</div>}
+          </div>
         </div>
         <button onClick={handleLogout} className="btn btn-outline" style={{padding: '0.4rem 0.8rem', fontSize: '0.85rem'}}>Déconnexion</button>
       </div>
@@ -209,6 +229,13 @@ export default function FarmerDashboard() {
           
           {!selectedPack ? (
             <div className="mt-4">
+              <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6', marginBottom: '1.5rem' }}>
+                <strong style={{ color: '#1e3a8a', display: 'block' }}>Stock Virtuel Disponible</strong>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb', marginTop: '0.2rem' }}>
+                  {agrocamStock !== null ? `${agrocamStock} poussins` : 'Chargement...'}
+                </div>
+              </div>
+              
               <p className="text-muted mb-4">Choisissez un pack pour votre prochain élevage.</p>
               <div className="flex flex-col gap-4">
                 {packs.map(pack => (

@@ -11,16 +11,19 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Username already exists' }, { status: 400 });
     }
 
+    const unique_id = `AGRK-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const newUser = await db.insert('users', {
       role: 'Farmer',
       username,
       password,
       name,
       phone,
-      location
+      location,
+      unique_id
     });
 
-    const sessionData = JSON.stringify({ id: newUser.id, role: newUser.role, name: newUser.name });
+    const sessionData = JSON.stringify({ id: newUser.id, role: newUser.role, name: newUser.name, unique_id: newUser.unique_id });
     const cookieStore = await cookies();
     cookieStore.set('agroking_session', sessionData, {
       httpOnly: true,

@@ -275,7 +275,15 @@
       "id": 5,
       "name": "PK 16",
       "lat": 4.081488115027995,
-      "lng": 9.727925252733511
+    }
+  ],
+  "agrocam_reservations": [
+    {
+      "id": 1,
+      "chicks_reserved": 1000,
+      "chicks_available": 1000,
+      "amount_paid": 500000,
+      "created_at": "2026-07-03T10:00:00.000Z"
     }
   ]
 }

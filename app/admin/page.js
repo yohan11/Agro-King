@@ -6,6 +6,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [farmers, setFarmers] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [agrocamReservations, setAgrocamReservations] = useState([]);
+  const [loadingOrder, setLoadingOrder] = useState(null);
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
@@ -14,14 +16,23 @@ export default function AdminDashboard() {
 
     fetchFarmers();
     fetchOrders();
+    fetchReservations();
 
     const interval = setInterval(() => {
       fetchFarmers();
       fetchOrders();
+      fetchReservations();
     }, 5000);
 
     return () => clearInterval(interval);
   }, [router]);
+
+  const fetchReservations = async () => {
+    const res = await fetch('/api/agrocam');
+    if (res.ok) {
+      setAgrocamReservations(await res.json());
+    }
+  };
 
   const fetchFarmers = async () => {
     const res = await fetch('/api/users');
@@ -36,12 +47,19 @@ export default function AdminDashboard() {
   };
 
   const updateOrderStatus = async (id, status) => {
-    await fetch(`/api/orders/${id}`, {
+    setLoadingOrder(id);
+    const res = await fetch(`/api/orders/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
-    fetchOrders();
+    setLoadingOrder(null);
+    if (res.ok) {
+      alert(`Statut mis à jour avec succès : ${status}`);
+      fetchOrders();
+    } else {
+      alert("Erreur lors de la mise à jour");
+    }
   };
 
   const handleLogout = async () => {
@@ -127,8 +145,56 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   <td style={{ padding: '0.75rem' }}>
-                    {o.status === 'En attente' && <button className="btn btn-outline" style={{ fontSize:'0.8rem', marginRight:'0.5rem', padding: '0.4rem 0.8rem' }} onClick={() => updateOrderStatus(o.id, 'Confirmée')}>Confirmer</button>}
-                    {o.status === 'Confirmée' && <button className="btn btn-primary" style={{ fontSize:'0.8rem', padding: '0.4rem 0.8rem' }} onClick={() => updateOrderStatus(o.id, 'Livrée')}>Livrer</button>}
+                    {o.status === 'En attente' && (
+                      <button 
+                        className="btn btn-outline" 
+                        style={{ fontSize:'0.8rem', marginRight:'0.5rem', padding: '0.4rem 0.8rem' }} 
+                        onClick={() => updateOrderStatus(o.id, 'Confirmée')}
+                        disabled={loadingOrder === o.id}
+                      >
+                        {loadingOrder === o.id ? '...' : 'Confirmer'}
+                      </button>
+                    )}
+                    {o.status === 'Confirmée' && (
+                      <button 
+                        className="btn btn-primary" 
+                        style={{ fontSize:'0.8rem', padding: '0.4rem 0.8rem' }} 
+                        onClick={() => updateOrderStatus(o.id, 'Livrée')}
+                        disabled={loadingOrder === o.id}
+                      >
+                        {loadingOrder === o.id ? '...' : 'Livrer'}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="panel">
+        <h2 style={{color: 'var(--accent-secondary)'}}>Réservations Agrocam (Stock Virtuel)</h2>
+        {agrocamReservations.length === 0 ? <p className="text-muted">Aucune réservation pour le moment.</p> : (
+          <table style={{ width: '100%', textAlign: 'left', marginTop: '1rem', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--panel-border)' }}>
+                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Réservation N°</th>
+                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Date</th>
+                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Montant Payé</th>
+                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Poussins Réservés</th>
+                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Poussins Disponibles</th>
+              </tr>
+            </thead>
+            <tbody>
+              {agrocamReservations.map(r => (
+                <tr key={r.id} style={{ borderBottom: '1px solid var(--panel-border)' }}>
+                  <td style={{ padding: '0.75rem', fontWeight: '500' }}>#{r.id}</td>
+                  <td style={{ padding: '0.75rem' }}>{new Date(r.created_at).toLocaleDateString('fr-FR')}</td>
+                  <td style={{ padding: '0.75rem', fontWeight: '500', color: 'var(--accent-primary)' }}>{r.amount_paid} FCFA</td>
+                  <td style={{ padding: '0.75rem' }}>{r.chicks_reserved}</td>
+                  <td style={{ padding: '0.75rem', fontWeight: 'bold', color: r.chicks_available > 100 ? 'var(--accent-success)' : 'var(--accent-warning)' }}>
+                    {r.chicks_available}
                   </td>
                 </tr>
               ))}

@@ -14,7 +14,7 @@ export async function POST(req) {
     }
 
     // Set mock secure cookie
-    const sessionData = JSON.stringify({ id: user.id, role: user.role, name: user.name });
+    const sessionData = JSON.stringify({ id: user.id, role: user.role, name: user.name, unique_id: user.unique_id });
     const cookieStore = await cookies();
     cookieStore.set('agroking_session', sessionData, {
       httpOnly: true,
@@ -24,7 +24,7 @@ export async function POST(req) {
       maxAge: 60 * 60 * 24 // 1 day
     });
 
-    return NextResponse.json({ message: 'Logged in successfully', user: { id: user.id, role: user.role, name: user.name } });
+    return NextResponse.json({ message: 'Logged in successfully', user: { id: user.id, role: user.role, name: user.name, unique_id: user.unique_id } });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -47,6 +47,21 @@ export async function POST(req) {
     const data = await req.json();
     const chicksCount = Number(data.chicks);
 
+    // Only check stock for actual chick orders (exclude réapprovisionnement aliment)
+    if (chicksCount > 0) {
+      const reservations = await db.getTable('agrocam_reservations');
+      const activeReservation = reservations.find(r => r.chicks_available >= chicksCount);
+      
+      if (!activeReservation) {
+        return NextResponse.json({ error: 'Stock virtuel Agrocam insuffisant pour cette commande.' }, { status: 400 });
+      }
+
+      // Deduct from reservation
+      await db.update('agrocam_reservations', activeReservation.id, {
+        chicks_available: activeReservation.chicks_available - chicksCount
+      });
+    }
+
     const newOrder = await db.insert('orders', {
       user_id: user.id,
       chicks: chicksCount,
