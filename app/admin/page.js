@@ -152,7 +152,7 @@ export default function AdminDashboard() {
                         onClick={() => updateOrderStatus(o.id, 'Confirmée')}
                         disabled={loadingOrder === o.id}
                       >
-                        {loadingOrder === o.id ? '...' : 'Confirmer'}
+                        {loadingOrder === o.id ? <span className="spinner"></span> : 'Confirmer'}
                       </button>
                     )}
                     {o.status === 'Confirmée' && (
@@ -162,7 +162,7 @@ export default function AdminDashboard() {
                         onClick={() => updateOrderStatus(o.id, 'Livrée')}
                         disabled={loadingOrder === o.id}
                       >
-                        {loadingOrder === o.id ? '...' : 'Livrer'}
+                        {loadingOrder === o.id ? <span className="spinner"></span> : 'Livrer'}
                       </button>
                     )}
                   </td>
