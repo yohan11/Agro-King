@@ -47,6 +47,7 @@ export async function POST(req) {
     const data = await req.json();
     const chicksCount = Number(data.chicks);
 
+    let agrocam_reservation_id = null;
     // Only check stock for actual chick orders (exclude réapprovisionnement aliment)
     if (chicksCount > 0) {
       const reservations = await db.getTable('agrocam_reservations');
@@ -60,6 +61,7 @@ export async function POST(req) {
       await db.update('agrocam_reservations', activeReservation.id, {
         chicks_available: activeReservation.chicks_available - chicksCount
       });
+      agrocam_reservation_id = activeReservation.id;
     }
 
     const newOrder = await db.insert('orders', {
@@ -71,6 +73,7 @@ export async function POST(req) {
       next_bags_delivery_preference: data.next_bags_delivery_preference || null,
       coordinates: data.coordinates || null,
       status: 'En attente',
+      agrocam_reservation_id,
       created_at: new Date().toISOString()
     });
 

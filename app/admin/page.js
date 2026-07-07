@@ -47,6 +47,11 @@ export default function AdminDashboard() {
   };
 
   const updateOrderStatus = async (id, status) => {
+    const confirmationMsg = status === 'Livrée' 
+      ? "Êtes-vous sûr de vouloir marquer cette commande comme livrée ?" 
+      : "Confirmer cette commande ?";
+    if (!window.confirm(confirmationMsg)) return;
+
     setLoadingOrder(id);
     const res = await fetch(`/api/orders/${id}`, {
       method: 'PUT',
@@ -75,6 +80,23 @@ export default function AdminDashboard() {
           <h1 style={{color: 'var(--accent-secondary)'}}>Tableau de Bord Administrateur</h1>
         </div>
         <button onClick={handleLogout} className="btn btn-outline" style={{padding: '0.5rem 1rem'}}>Déconnexion</button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="panel" style={{ background: '#eff6ff', borderLeft: '4px solid #3b82f6' }}>
+          <h2 style={{ color: '#1e3a8a', fontSize: '1.2rem' }}>Stock Virtuel Restant (Agrocam)</h2>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2563eb', marginTop: '0.5rem' }}>
+            {agrocamReservations.length > 0 
+              ? agrocamReservations.reduce((acc, r) => acc + r.chicks_available, 0)
+              : 0} poussins
+          </div>
+        </div>
+        <div className="panel" style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981' }}>
+          <h2 style={{ color: '#064e3b', fontSize: '1.2rem' }}>Éleveurs Inscrits</h2>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#059669', marginTop: '0.5rem' }}>
+            {farmers.length}
+          </div>
+        </div>
       </div>
 
       <div className="panel mb-4">

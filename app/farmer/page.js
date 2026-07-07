@@ -221,6 +221,13 @@ export default function FarmerDashboard() {
         <button onClick={handleLogout} className="btn btn-outline" style={{padding: '0.4rem 0.8rem', fontSize: '0.85rem'}}>Déconnexion</button>
       </div>
 
+      <div className="panel mb-4" style={{ background: '#eff6ff', borderLeft: '4px solid #3b82f6' }}>
+        <h2 style={{ color: '#1e3a8a', fontSize: '1.2rem' }}>Stock Virtuel Disponible (Agrocam)</h2>
+        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2563eb', marginTop: '0.5rem' }}>
+          {agrocamStock !== null ? `${agrocamStock} poussins` : 'Chargement...'}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         
         {/* Order Form */}
@@ -229,12 +236,6 @@ export default function FarmerDashboard() {
           
           {!selectedPack ? (
             <div className="mt-4">
-              <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6', marginBottom: '1.5rem' }}>
-                <strong style={{ color: '#1e3a8a', display: 'block' }}>Stock Virtuel Disponible</strong>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb', marginTop: '0.2rem' }}>
-                  {agrocamStock !== null ? `${agrocamStock} poussins` : 'Chargement...'}
-                </div>
-              </div>
               
               <p className="text-muted mb-4">Choisissez un pack pour votre prochain élevage.</p>
               <div className="flex flex-col gap-4">
@@ -345,8 +346,8 @@ export default function FarmerDashboard() {
               {orders.map(o => (
                 <div key={o.id} style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '1rem' }}>
                   <div className="flex justify-between items-center">
-                    <strong>{o.pack_type || `${o.chicks} Poussins`}</strong>
-                    <span className={`badge ${o.status === 'Livrée' ? 'badge-success' : 'badge-warning'}`}>{o.status}</span>
+                    <strong style={{ fontSize: '1.1rem' }}>{o.pack_type || `${o.chicks} Poussins`}</strong>
+                    <span className={`badge ${o.status === 'Livrée' ? 'badge-success' : (o.status === 'En attente' ? 'badge-warning' : 'badge-primary')}`} style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}>{o.status}</span>
                   </div>
                   <div className="text-muted mt-2" style={{fontSize: '0.9rem'}}>
                     {o.chicks > 0 && <div>{o.chicks} poussins au total</div>}

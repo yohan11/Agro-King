@@ -77,7 +77,7 @@ export default function AuthPage() {
               <input type="text" placeholder="Ville ou Quartier" className="input" required onChange={e => setFormData({...formData, location: e.target.value})} />
             </>
           )}
-          <input type="text" placeholder="Nom d'utilisateur" className="input" required onChange={e => setFormData({...formData, username: e.target.value})} />
+          <input type="text" placeholder={isLogin ? "Nom d'utilisateur ou ID (ex: AGRK-1234)" : "Nom d'utilisateur"} className="input" required onChange={e => setFormData({...formData, username: e.target.value})} />
           <input type="password" placeholder="Mot de passe" className="input" required onChange={e => setFormData({...formData, password: e.target.value})} />
           <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
             {isLogin ? 'Se connecter' : 'Créer mon compte'}

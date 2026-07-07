@@ -8,7 +8,11 @@ export async function POST(req) {
     const users = await db.getTable('users');
 
     // Make username case-insensitive because mobile phones auto-capitalize the first letter!
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+    const user = users.find(u => 
+      (u.username.toLowerCase() === username.toLowerCase() || 
+       (u.unique_id && u.unique_id.toLowerCase() === username.toLowerCase())) 
+      && u.password === password
+    );
     if (!user) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
