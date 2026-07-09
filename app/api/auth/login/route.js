@@ -9,8 +9,12 @@ export async function POST(req) {
     const db = client.db("agroking");
     const users = db.collection("users");
 
-    // Vérifie l'utilisateur
-    const user = await users.findOne({ username, password });
+    // Vérifie l'utilisateur (username insensible à la casse)
+    const user = await users.findOne({
+      username: username.toLowerCase(),
+      password
+    });
+
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
