@@ -10,14 +10,7 @@ export async function POST(req) {
     const users = db.collection("users");
 
     // Vérifie l'utilisateur
-    const user = await users.findOne({
-      $or: [
-        { username: username.toLowerCase() },
-        { unique_id: username.toLowerCase() }
-      ],
-      password
-    });
-
+    const user = await users.findOne({ username, password });
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
@@ -40,7 +33,7 @@ export async function POST(req) {
     });
 
     return NextResponse.json({
-      message: "Logged in successfully",
+      message: "Login successful",
       user: {
         id: user._id,
         role: user.role,
