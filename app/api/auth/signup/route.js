@@ -1,32 +1,26 @@
 import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb"; // utilitaire de connexion MongoDB
+import clientPromise from "@/lib/mongodb";
 
 export async function POST(req) {
   try {
-    // Récupère les données envoyées par Postman
     const { username, password, name, phone, location } = await req.json();
-
-    // Connexion à MongoDB Atlas
     const client = await clientPromise;
-    const db = client.db("agroking"); // nom de ta base
-    const users = db.collection("users"); // collection "users"
+    const db = client.db("agroking");
+    const users = db.collection("users");
 
     // Vérifie si l'utilisateur existe déjà
-    const existingUser = await users.findOne({ username });
+    const existingUser = await users.findOne({ username: username.toLowerCase() });
     if (existingUser) {
-      return NextResponse.json(
-        { error: "Username already exists" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "User already exists" }, { status: 400 });
     }
 
-    // Génère un ID unique
-    const unique_id = `AGRK-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Génère un identifiant unique
+    const unique_id = "AGRK-" + Math.floor(1000 + Math.random() * 9000);
 
-    // Insère le nouvel utilisateur
+    // Insère l'utilisateur avec username en minuscule
     const result = await users.insertOne({
       role: "Farmer",
-      username,
+      username: username.toLowerCase(),
       password,
       name,
       phone,
@@ -34,13 +28,15 @@ export async function POST(req) {
       unique_id,
     });
 
-    // Réponse JSON
     return NextResponse.json({
-      message: "Signed up successfully",
+      message: "Signup successful",
       user: {
         id: result.insertedId,
         role: "Farmer",
+        username: username.toLowerCase(),
         name,
+        phone,
+        location,
         unique_id,
       },
     });
