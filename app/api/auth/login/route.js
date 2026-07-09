@@ -1,6 +1,16 @@
 import db from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+export async function POST(req) {
+  console.log("signup route hit"); // <-- ajout pour vérifier
+  try {
+    const body = await req.json();
+    // ... ton code d'insertion MongoDB
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 
 export async function POST(req) {
   try {
@@ -8,9 +18,9 @@ export async function POST(req) {
     const users = await db.getTable('users');
 
     // Make username case-insensitive because mobile phones auto-capitalize the first letter!
-    const user = users.find(u => 
-      (u.username.toLowerCase() === username.toLowerCase() || 
-       (u.unique_id && u.unique_id.toLowerCase() === username.toLowerCase())) 
+    const user = users.find(u =>
+      (u.username.toLowerCase() === username.toLowerCase() ||
+        (u.unique_id && u.unique_id.toLowerCase() === username.toLowerCase()))
       && u.password === password
     );
     if (!user) {
