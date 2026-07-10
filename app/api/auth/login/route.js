@@ -9,9 +9,9 @@ export async function POST(req) {
     const db = client.db("agroking");
     const users = db.collection("users");
 
-    // Vérifie l'utilisateur (username insensible à la casse)
+    // Vérifie l'utilisateur (username réellement insensible à la casse via regex)
     const user = await users.findOne({
-      username: username.toLowerCase(),
+      username: { $regex: `^${username}$`, $options: "i" },
       password
     });
 
