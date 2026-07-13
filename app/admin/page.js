@@ -196,9 +196,11 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {orders.map(o => (
-                <tr key={o.id} style={{ borderBottom: '1px solid var(--panel-border)' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: '500' }}>#{o.id}</td>
+              {orders.map(o => {
+                const orderId = o._id || o.id;
+                return (
+                <tr key={orderId} style={{ borderBottom: '1px solid var(--panel-border)' }}>
+                  <td style={{ padding: '0.75rem', fontWeight: '500' }}>#{orderId.toString().substring(0, 8)}</td>
                   <td style={{ padding: '0.75rem', fontWeight: '600', color: 'var(--accent-secondary)' }}>{o.farmer_name}</td>
                   <td style={{ padding: '0.75rem' }}>{o.phone}</td>
                   <td style={{ padding: '0.75rem', fontWeight: '500' }}>
@@ -227,25 +229,26 @@ export default function AdminDashboard() {
                       <button 
                         className="btn btn-outline" 
                         style={{ fontSize:'0.8rem', marginRight:'0.5rem', padding: '0.4rem 0.8rem' }} 
-                        onClick={() => updateOrderStatus(o.id, 'Confirmée')}
-                        disabled={loadingOrder === o.id}
+                        onClick={() => updateOrderStatus(orderId, 'Confirmée')}
+                        disabled={loadingOrder === orderId}
                       >
-                        {loadingOrder === o.id ? <span className="spinner"></span> : 'Confirmer'}
+                        {loadingOrder === orderId ? <span className="spinner"></span> : 'Confirmer'}
                       </button>
                     )}
                     {o.status === 'Confirmée' && (
                       <button 
                         className="btn btn-primary" 
                         style={{ fontSize:'0.8rem', padding: '0.4rem 0.8rem' }} 
-                        onClick={() => updateOrderStatus(o.id, 'Livrée')}
-                        disabled={loadingOrder === o.id}
+                        onClick={() => updateOrderStatus(orderId, 'Livrée')}
+                        disabled={loadingOrder === orderId}
                       >
-                        {loadingOrder === o.id ? <span className="spinner"></span> : 'Livrer'}
+                        {loadingOrder === orderId ? <span className="spinner"></span> : 'Livrer'}
                       </button>
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
