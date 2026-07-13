@@ -52,10 +52,27 @@ export async function POST(request) {
         // - marquer la commande liée (orderId) comme payée dans "orders"
         // - notifier l'éleveur (SMS/email/notification)
         if (transaction_status === "SUCCESS" && updatedDoc.orderId) {
-            await database.collection("orders").findOneAndUpdate(
+            const orderDoc = await database.collection("orders").findOneAndUpdate(
                 { _id: updatedDoc.orderId },
                 { $set: { paymentStatus: "PAID", status: "Confirmée", paidAt: new Date() } }
             );
+
+            // Fetch the updated or original order to get its chicks/pack details
+            const order = orderDoc.value || orderDoc;
+
+            if (order) {
+                // Ensure a cycle is created only when payment is effectively done
+                const existingCycle = await database.collection("cycles").findOne({ order_id: updatedDoc.orderId });
+                if (!existingCycle) {
+                    await database.collection("cycles").insertOne({
+                        user_id: order.user_id,
+                        order_id: order.id || order._id,
+                        chicks: order.chicks,
+                        pack_id: order.pack_id || order.chicks,
+                        start_date: new Date().toISOString()
+                    });
+                }
+            }
         }
 
         // PayUnit attend une réponse 200 pour confirmer la bonne réception

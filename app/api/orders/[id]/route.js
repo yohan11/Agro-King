@@ -26,21 +26,6 @@ export async function PUT(req, { params }) {
     const updatedOrder = await db.update('orders', orderId, { status });
     if (!updatedOrder) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
-    // Cycle Activation Logic: trigger when status becomes Livrée
-    if (status === 'Livrée') {
-      const cycles = await db.getTable('cycles');
-      const existingCycle = cycles.find(c => c.order_id === orderId);
-      if (!existingCycle) {
-        await db.insert('cycles', {
-          user_id: updatedOrder.user_id,
-          order_id: updatedOrder.id,
-          chicks: updatedOrder.chicks,
-          pack_id: updatedOrder.pack_id || updatedOrder.chicks,
-          start_date: new Date().toISOString()
-        });
-      }
-    }
-
     return NextResponse.json(updatedOrder, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
