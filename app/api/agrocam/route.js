@@ -19,7 +19,7 @@ export async function GET() {
 
   const reservations = await db.getTable('agrocam_reservations');
 
-  if (user.role === 'Admin') {
+  if (user.role?.toLowerCase() === 'admin') {
     return NextResponse.json(reservations);
   } else {
     // For farmers, just return the total available stock across all active reservations
@@ -30,7 +30,7 @@ export async function GET() {
 
 export async function POST(req) {
   const user = await getSessionUser();
-  if (!user || user.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user || user.role?.toLowerCase() !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     const data = await req.json();

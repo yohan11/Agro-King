@@ -11,7 +11,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
-      if (!data.user || data.user.role !== 'Admin') router.push('/');
+      if (!data.user || data.user.role?.toLowerCase() !== 'admin') router.push('/');
     });
 
     fetchFarmers();

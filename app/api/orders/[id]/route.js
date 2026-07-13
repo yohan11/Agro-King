@@ -15,7 +15,7 @@ async function getSessionUser() {
 
 export async function PUT(req, { params }) {
   const user = await getSessionUser();
-  if (!user || user.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user || user.role?.toLowerCase() !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     const { status } = await req.json();
