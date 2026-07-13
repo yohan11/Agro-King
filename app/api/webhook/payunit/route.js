@@ -40,7 +40,9 @@ export async function POST(request) {
             { returnDocument: "after" }
         );
 
-        if (!updated.value) {
+        const updatedDoc = updated.value || updated;
+
+        if (!updatedDoc || !updatedDoc._id) {
             console.warn(`Transaction ${transaction_id} introuvable en base`);
             // On répond quand même 200 pour éviter que PayUnit ne re-tente indéfiniment
             return NextResponse.json({ received: true, warning: "transaction inconnue" });
@@ -49,10 +51,10 @@ export async function POST(request) {
         // Si le paiement est confirmé, on peut ici déclencher la suite :
         // - marquer la commande liée (orderId) comme payée dans "orders"
         // - notifier l'éleveur (SMS/email/notification)
-        if (transaction_status === "SUCCESS" && updated.value.orderId) {
+        if (transaction_status === "SUCCESS" && updatedDoc.orderId) {
             await database.collection("orders").findOneAndUpdate(
-                { _id: updated.value.orderId },
-                { $set: { paymentStatus: "PAID", paidAt: new Date() } }
+                { _id: updatedDoc.orderId },
+                { $set: { paymentStatus: "PAID", status: "Confirmée", paidAt: new Date() } }
             );
         }
 

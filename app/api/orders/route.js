@@ -47,21 +47,21 @@ export async function POST(req) {
     const data = await req.json();
     const chicksCount = Number(data.chicks);
 
-    let agrocam_reservation_id = null;
-    // Only check stock for actual chick orders (exclude réapprovisionnement aliment)
-    if (chicksCount > 0) {
-      const reservations = await db.getTable('agrocam_reservations');
-      const activeReservation = reservations.find(r => r.chicks_available >= chicksCount);
-      
-      if (!activeReservation) {
-        return NextResponse.json({ error: 'Stock virtuel Agrocam insuffisant pour cette commande.' }, { status: 400 });
-      }
+    let demarrageDeduction = chicksCount * 0.01;
+    let croissanceDeduction = chicksCount * 0.04;
+    let finitionDeduction = chicksCount * 0.05;
 
-      // Deduct from reservation
-      await db.update('agrocam_reservations', activeReservation.id, {
-        chicks_available: activeReservation.chicks_available - chicksCount
-      });
-      agrocam_reservation_id = activeReservation.id;
+    // Deduct stock but don't block order
+    if (chicksCount > 0) {
+      const stockList = await db.getTable('feed_stock');
+      let globalStock = stockList.find(s => s._id === 'global' || s.id === 'global');
+      if (globalStock) {
+        await db.update('feed_stock', globalStock._id || globalStock.id, {
+          demarrage: Math.max(0, globalStock.demarrage - demarrageDeduction),
+          croissance: Math.max(0, globalStock.croissance - croissanceDeduction),
+          finition: Math.max(0, globalStock.finition - finitionDeduction)
+        });
+      }
     }
 
     const newOrder = await db.insert('orders', {
@@ -73,7 +73,6 @@ export async function POST(req) {
       next_bags_delivery_preference: data.next_bags_delivery_preference || null,
       coordinates: data.coordinates || null,
       status: 'En attente',
-      agrocam_reservation_id,
       created_at: new Date().toISOString()
     });
 

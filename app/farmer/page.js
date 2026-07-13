@@ -7,8 +7,7 @@ export default function FarmerDashboard() {
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [cycles, setCycles] = useState([]);
-  const [agrocamStock, setAgrocamStock] = useState(null);
-  
+  const [cycles, setCycles] = useState([]);
   // Order flow state
   const [selectedPack, setSelectedPack] = useState(null);
   const [customChicks, setCustomChicks] = useState('');
@@ -108,13 +107,6 @@ export default function FarmerDashboard() {
 
   const fetchOrders = async () => setOrders(await (await fetch('/api/orders')).json());
   const fetchCycles = async () => setCycles(await (await fetch('/api/cycles')).json());
-  const fetchStock = async () => {
-    const res = await fetch('/api/agrocam');
-    if (res.ok) {
-      const data = await res.json();
-      setAgrocamStock(data.totalAvailable);
-    }
-  };
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
@@ -124,14 +116,12 @@ export default function FarmerDashboard() {
         setUser(data.user);
         fetchOrders();
         fetchCycles();
-        fetchStock();
       }
     });
 
     const interval = setInterval(() => {
       fetchOrders();
       fetchCycles();
-      fetchStock();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -152,6 +142,7 @@ export default function FarmerDashboard() {
     let chicksCount = selectedPack.id === 'custom' ? Number(customChicks) : selectedPack.chicks;
     let pref = nextDeliveryPref === 'date' ? `Date demandée: ${nextDeliveryDate}` : 'Rappels automatiques activés';
     
+    // Create order as 'En attente'
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -166,6 +157,40 @@ export default function FarmerDashboard() {
     });
 
     if (res.ok) {
+      const orderData = await res.json();
+      
+      // Calculate amount: For Pack Sur Mesure, 1500 FCFA per chick. Others are fixed.
+      let amount = 0;
+      if (selectedPack.id === '100') amount = 150000;
+      else if (selectedPack.id === '200') amount = 300000;
+      else amount = chicksCount * 1500;
+
+      // Initiate PayUnit Payment
+      try {
+        const payRes = await fetch('/api/payment/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount,
+            packType: selectedPack.id === 'custom' ? 'Pack Sur Mesure' : selectedPack.name,
+            farmerId: user.id,
+            orderId: orderData.id || orderData._id
+          })
+        });
+
+        if (payRes.ok) {
+          const payData = await payRes.json();
+          if (payData.transactionUrl) {
+            window.location.href = payData.transactionUrl;
+            return;
+          }
+        }
+        alert('Erreur lors de l\'initialisation du paiement PayUnit.');
+      } catch (e) {
+        console.error('PayUnit init error:', e);
+        alert('Erreur de connexion au système de paiement.');
+      }
+
       setDeliveryLocation(''); 
       setDeliveryDate('');
       setCustomChicks('');
@@ -175,8 +200,6 @@ export default function FarmerDashboard() {
       setCoordinates(null);
       setShowPayment(false);
       fetchOrders();
-      fetchStock();
-      alert('Paiement reporté et commande confirmée avec succès !');
     } else {
       const data = await res.json();
       alert(data.error || 'Erreur lors de la commande.');
@@ -221,13 +244,6 @@ export default function FarmerDashboard() {
         <button onClick={handleLogout} className="btn btn-outline" style={{padding: '0.4rem 0.8rem', fontSize: '0.85rem'}}>Déconnexion</button>
       </div>
 
-      <div className="panel mb-4" style={{ background: '#eff6ff', borderLeft: '4px solid #3b82f6' }}>
-        <h2 style={{ color: '#1e3a8a', fontSize: '1.2rem' }}>Stock Virtuel Disponible (Agrocam)</h2>
-        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2563eb', marginTop: '0.5rem' }}>
-          {agrocamStock !== null ? `${agrocamStock} poussins` : 'Chargement...'}
-        </div>
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
         
         {/* Order Form */}
@@ -263,30 +279,17 @@ export default function FarmerDashboard() {
               </div>
               
               {showPayment ? (
-                <div style={{ background: '#fff7ed', padding: '1.5rem', borderRadius: '8px', border: '2px solid #fdba74', marginTop: '1rem' }}>
-                  <h3 style={{ color: '#ea580c', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>Paiement de la Commande</h3>
-                  <p style={{ marginBottom: '1rem', color: '#9a3412', fontSize: '0.95rem' }}>
-                    Pour confirmer votre commande, veuillez effectuer le paiement via Orange Money.
+                <div style={{ background: '#eff6ff', padding: '1.5rem', borderRadius: '8px', border: '2px solid #3b82f6', marginTop: '1rem' }}>
+                  <h3 style={{ color: '#1e3a8a', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>Finalisation de la commande</h3>
+                  <p style={{ marginBottom: '1rem', color: '#1e40af', fontSize: '0.95rem' }}>
+                    Vous allez être redirigé vers notre portail sécurisé PayUnit pour effectuer votre paiement via Mobile Money ou Carte Bancaire.
                   </p>
-                  
-                  <div style={{ background: '#ffedd5', padding: '1rem', borderRadius: '8px', textAlign: 'center', marginBottom: '1.5rem' }}>
-                    <strong style={{ display: 'block', color: '#c2410c', fontSize: '1rem', textTransform: 'uppercase' }}>Orange Money Cameroun</strong>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ea580c', margin: '0.5rem 0', letterSpacing: '2px' }}>697 59 05 68</div>
-                  </div>
                   
                   <div className="flex gap-2 mt-4">
                     <button type="button" onClick={() => setShowPayment(false)} className="btn btn-outline" style={{ flex: 1 }}>Annuler / Modifier</button>
-                    <a href="tel:%23150%2A1%2A1%2A697590568%23" 
-                       onClick={() => {
-                         setTimeout(() => {
-                           confirmPaymentAndSubmit();
-                         }, 500);
-                       }} 
-                       className="btn" 
-                       style={{ flex: 2, background: '#ea580c', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', flexDirection: 'column', lineHeight: '1.2' }}>
-                       <span>Ouvrir l'application Téléphone</span>
-                       <span style={{ fontSize: '0.75rem', fontWeight: 'normal', opacity: 0.9 }}>(Composez #150*1*1*697590568#)</span>
-                    </a>
+                    <button type="button" onClick={() => confirmPaymentAndSubmit()} className="btn btn-primary" style={{ flex: 2 }}>
+                       Procéder au Paiement ➔
+                    </button>
                   </div>
                 </div>
               ) : (

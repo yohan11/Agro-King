@@ -6,8 +6,10 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [farmers, setFarmers] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [agrocamReservations, setAgrocamReservations] = useState([]);
+  const [feedStock, setFeedStock] = useState({ demarrage: 0, croissance: 0, finition: 0 });
   const [loadingOrder, setLoadingOrder] = useState(null);
+  const [isEditingStock, setIsEditingStock] = useState(false);
+  const [stockForm, setStockForm] = useState({ demarrage: 0, croissance: 0, finition: 0 });
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
@@ -16,21 +18,38 @@ export default function AdminDashboard() {
 
     fetchFarmers();
     fetchOrders();
-    fetchReservations();
+    fetchStock();
 
     const interval = setInterval(() => {
       fetchFarmers();
       fetchOrders();
-      fetchReservations();
+      if (!isEditingStock) fetchStock();
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [router]);
+  }, [router, isEditingStock]);
 
-  const fetchReservations = async () => {
-    const res = await fetch('/api/agrocam');
+  const fetchStock = async () => {
+    const res = await fetch('/api/stock');
     if (res.ok) {
-      setAgrocamReservations(await res.json());
+      const data = await res.json();
+      setFeedStock(data);
+    }
+  };
+
+  const handleUpdateStock = async (e) => {
+    e.preventDefault();
+    const res = await fetch('/api/stock', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(stockForm)
+    });
+    if (res.ok) {
+      setFeedStock(await res.json());
+      setIsEditingStock(false);
+      alert('Stock mis à jour avec succès');
+    } else {
+      alert('Erreur lors de la mise à jour du stock');
     }
   };
 
@@ -84,12 +103,49 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="panel" style={{ background: '#eff6ff', borderLeft: '4px solid #3b82f6' }}>
-          <h2 style={{ color: '#1e3a8a', fontSize: '1.2rem' }}>Stock Virtuel Restant (Agrocam)</h2>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2563eb', marginTop: '0.5rem' }}>
-            {agrocamReservations.length > 0 
-              ? agrocamReservations.reduce((acc, r) => acc + r.chicks_available, 0)
-              : 0} poussins
+          <div className="flex justify-between items-center mb-2">
+            <h2 style={{ color: '#1e3a8a', fontSize: '1.2rem', margin: 0 }}>Stock Virtuel (Sacs)</h2>
+            {!isEditingStock && <button onClick={() => { setStockForm(feedStock); setIsEditingStock(true); }} className="btn btn-outline" style={{padding: '0.3rem 0.6rem', fontSize: '0.8rem'}}>Modifier</button>}
           </div>
+          
+          {isEditingStock ? (
+            <form onSubmit={handleUpdateStock} className="flex flex-col gap-2 mt-2">
+              <div className="flex justify-between items-center">
+                <span style={{color: '#1e3a8a'}}>Démarrage:</span>
+                <input type="number" min="0" className="input" style={{width: '80px', padding: '0.2rem'}} value={stockForm.demarrage} onChange={e => setStockForm({...stockForm, demarrage: e.target.value})} />
+              </div>
+              <div className="flex justify-between items-center">
+                <span style={{color: '#1e3a8a'}}>Croissance:</span>
+                <input type="number" min="0" className="input" style={{width: '80px', padding: '0.2rem'}} value={stockForm.croissance} onChange={e => setStockForm({...stockForm, croissance: e.target.value})} />
+              </div>
+              <div className="flex justify-between items-center">
+                <span style={{color: '#1e3a8a'}}>Finition:</span>
+                <input type="number" min="0" className="input" style={{width: '80px', padding: '0.2rem'}} value={stockForm.finition} onChange={e => setStockForm({...stockForm, finition: e.target.value})} />
+              </div>
+              <div className="flex gap-2 mt-2">
+                <button type="submit" className="btn btn-primary" style={{flex: 1, padding: '0.3rem'}}>Enregistrer</button>
+                <button type="button" onClick={() => setIsEditingStock(false)} className="btn btn-outline" style={{flex: 1, padding: '0.3rem'}}>Annuler</button>
+              </div>
+            </form>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+              <div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: feedStock.demarrage < 10 ? '#dc2626' : '#2563eb' }}>{feedStock.demarrage}</div>
+                <div style={{ fontSize: '0.8rem', color: '#1e3a8a' }}>Démarrage</div>
+                {feedStock.demarrage < 10 && <div style={{color: '#dc2626', fontSize: '0.75rem', fontWeight: 'bold'}}>⚠️ Faible</div>}
+              </div>
+              <div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: feedStock.croissance < 10 ? '#dc2626' : '#2563eb' }}>{feedStock.croissance}</div>
+                <div style={{ fontSize: '0.8rem', color: '#1e3a8a' }}>Croissance</div>
+                {feedStock.croissance < 10 && <div style={{color: '#dc2626', fontSize: '0.75rem', fontWeight: 'bold'}}>⚠️ Faible</div>}
+              </div>
+              <div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: feedStock.finition < 10 ? '#dc2626' : '#2563eb' }}>{feedStock.finition}</div>
+                <div style={{ fontSize: '0.8rem', color: '#1e3a8a' }}>Finition</div>
+                {feedStock.finition < 10 && <div style={{color: '#dc2626', fontSize: '0.75rem', fontWeight: 'bold'}}>⚠️ Faible</div>}
+              </div>
+            </div>
+          )}
         </div>
         <div className="panel" style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981' }}>
           <h2 style={{ color: '#064e3b', fontSize: '1.2rem' }}>Éleveurs Inscrits</h2>
@@ -195,35 +251,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      <div className="panel">
-        <h2 style={{color: 'var(--accent-secondary)'}}>Réservations Agrocam (Stock Virtuel)</h2>
-        {agrocamReservations.length === 0 ? <p className="text-muted">Aucune réservation pour le moment.</p> : (
-          <table style={{ width: '100%', textAlign: 'left', marginTop: '1rem', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--panel-border)' }}>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Réservation N°</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Date</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Montant Payé</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Poussins Réservés</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Poussins Disponibles</th>
-              </tr>
-            </thead>
-            <tbody>
-              {agrocamReservations.map(r => (
-                <tr key={r.id} style={{ borderBottom: '1px solid var(--panel-border)' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: '500' }}>#{r.id}</td>
-                  <td style={{ padding: '0.75rem' }}>{new Date(r.created_at).toLocaleDateString('fr-FR')}</td>
-                  <td style={{ padding: '0.75rem', fontWeight: '500', color: 'var(--accent-primary)' }}>{r.amount_paid} FCFA</td>
-                  <td style={{ padding: '0.75rem' }}>{r.chicks_reserved}</td>
-                  <td style={{ padding: '0.75rem', fontWeight: 'bold', color: r.chicks_available > 100 ? 'var(--accent-success)' : 'var(--accent-warning)' }}>
-                    {r.chicks_available}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+
     </div>
   );
 }

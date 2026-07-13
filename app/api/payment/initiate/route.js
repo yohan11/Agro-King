@@ -37,7 +37,7 @@ export async function POST(request) {
         });
 
         return NextResponse.json({
-            transactionUrl: result.transaction_url,
+            transactionUrl: result.transaction_url || (result.data && result.data.transaction_url),
             transactionId,
         });
     } catch (error) {
