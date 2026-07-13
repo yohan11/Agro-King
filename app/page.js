@@ -12,7 +12,7 @@ export default function AuthPage() {
     fetch('/api/auth/me').then(res => {
       if (res.ok) {
         res.json().then(data => {
-          if (data.user) router.push(data.user.role === 'Admin' ? '/admin' : '/farmer');
+          if (data.user) router.push(data.user.role?.toLowerCase() === 'admin' ? '/admin' : '/farmer');
         });
       }
     });
@@ -33,7 +33,7 @@ export default function AuthPage() {
       if (!isLogin && data.user.role === 'Farmer') {
         setSignupSuccessData(data.user);
       } else {
-        router.push(data.user.role === 'Admin' ? '/admin' : '/farmer');
+        router.push(data.user.role?.toLowerCase() === 'admin' ? '/admin' : '/farmer');
       }
     } else {
       const data = await res.json();
