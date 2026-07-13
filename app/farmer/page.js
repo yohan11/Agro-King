@@ -184,7 +184,8 @@ export default function FarmerDashboard() {
             return;
           }
         }
-        alert('Erreur lors de l\'initialisation du paiement PayUnit.');
+          const errorData = await payRes.json();
+          alert(`Erreur lors de l'initialisation du paiement PayUnit: ${errorData.error || 'Erreur inconnue'}`);
       } catch (e) {
         console.error('PayUnit init error:', e);
         alert('Erreur de connexion au système de paiement.');
