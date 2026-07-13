@@ -47,23 +47,6 @@ export async function POST(req) {
     const data = await req.json();
     const chicksCount = Number(data.chicks);
 
-    let demarrageDeduction = chicksCount * 0.01;
-    let croissanceDeduction = chicksCount * 0.04;
-    let finitionDeduction = chicksCount * 0.05;
-
-    // Deduct stock but don't block order
-    if (chicksCount > 0) {
-      const stockList = await db.getTable('feed_stock');
-      let globalStock = stockList.find(s => s._id === 'global' || s.id === 'global');
-      if (globalStock) {
-        await db.update('feed_stock', globalStock._id || globalStock.id, {
-          demarrage: Math.max(0, globalStock.demarrage - demarrageDeduction),
-          croissance: Math.max(0, globalStock.croissance - croissanceDeduction),
-          finition: Math.max(0, globalStock.finition - finitionDeduction)
-        });
-      }
-    }
-
     const newOrder = await db.insert('orders', {
       user_id: user.id,
       chicks: chicksCount,

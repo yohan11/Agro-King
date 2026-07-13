@@ -71,6 +71,30 @@ export async function POST(request) {
                         pack_id: order.pack_id || order.chicks,
                         start_date: new Date().toISOString()
                     });
+
+                    // Deduct stock upon successful payment
+                    const chicksCount = Number(order.chicks);
+                    if (chicksCount > 0) {
+                        const stockList = await database.collection('feed_stock').find({}).toArray();
+                        let globalStock = stockList.find(s => s._id === 'global' || s.id === 'global');
+                        if (!globalStock && stockList.length > 0) {
+                            globalStock = stockList[0];
+                        }
+                        if (globalStock) {
+                            let demarrageDeduction = chicksCount * 0.01;
+                            let croissanceDeduction = chicksCount * 0.04;
+                            let finitionDeduction = chicksCount * 0.05;
+
+                            await database.collection('feed_stock').updateOne(
+                                { _id: globalStock._id },
+                                { $set: {
+                                    demarrage: Math.max(0, (globalStock.demarrage || 0) - demarrageDeduction),
+                                    croissance: Math.max(0, (globalStock.croissance || 0) - croissanceDeduction),
+                                    finition: Math.max(0, (globalStock.finition || 0) - finitionDeduction)
+                                }}
+                            );
+                        }
+                    }
                 }
             }
         }
