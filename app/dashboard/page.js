@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
     // Récupère le cookie de session
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const session = cookieStore.get("agroking_session");
 
     // Si pas de session → redirection vers /login

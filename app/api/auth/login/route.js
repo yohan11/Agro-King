@@ -30,8 +30,8 @@ export async function POST(req) {
     const cookieStore = await cookies();
     cookieStore.set("agroking_session", sessionData, {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       path: "/",
       maxAge: 60 * 60 * 24 // 1 jour
     });
