@@ -7,7 +7,6 @@ export default function FarmerDashboard() {
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [cycles, setCycles] = useState([]);
-  const [cycles, setCycles] = useState([]);
   // Order flow state
   const [selectedPack, setSelectedPack] = useState(null);
   const [customChicks, setCustomChicks] = useState('');
