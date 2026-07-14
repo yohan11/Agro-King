@@ -1,12 +1,26 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ username: '', password: '', name: '', phone: '', location: '' });
   const [signupSuccessData, setSignupSuccessData] = useState(null);
+
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'register') {
+      setIsLogin(false);
+      setFormData(prev => ({
+        ...prev,
+        phone: searchParams.get('phone') || '',
+        name: searchParams.get('name') || '',
+        location: searchParams.get('location') || ''
+      }));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => {
@@ -90,5 +104,13 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <AuthContent />
+    </Suspense>
   );
 }

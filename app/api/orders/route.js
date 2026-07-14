@@ -45,7 +45,8 @@ export async function POST(req) {
 
   try {
     const data = await req.json();
-    const chicksCount = Number(data.chicks);
+    const chicksCount = Number(data.chicks) || 0;
+    const isAlimentsSeuls = data.pack_type === 'Aliments Seuls';
 
     const newOrder = await db.insert('orders', {
       user_id: user.id,
@@ -56,6 +57,7 @@ export async function POST(req) {
       next_bags_delivery_preference: data.next_bags_delivery_preference || null,
       coordinates: data.coordinates || null,
       status: 'En attente',
+      is_aliments_seuls: isAlimentsSeuls,
       created_at: new Date().toISOString()
     });
 

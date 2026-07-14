@@ -60,16 +60,25 @@ export async function POST(request) {
             // Fetch the updated or original order to get its chicks/pack details
             const order = orderDoc.value || orderDoc;
 
-            if (order) {
+            if (order && !order.is_aliments_seuls) {
                 // Ensure a cycle is created only when payment is effectively done
                 const existingCycle = await database.collection("cycles").findOne({ order_id: updatedDoc.orderId });
                 if (!existingCycle) {
+                    let startDate = new Date().toISOString();
+                    if (order.delivery_date) {
+                        // Ensure the date string is valid, or fallback to current
+                        const parsedDate = new Date(order.delivery_date);
+                        if (!isNaN(parsedDate.getTime())) {
+                            startDate = parsedDate.toISOString();
+                        }
+                    }
+
                     await database.collection("cycles").insertOne({
                         user_id: order.user_id,
                         order_id: order.id || order._id,
                         chicks: order.chicks,
                         pack_id: order.pack_id || order.chicks,
-                        start_date: new Date().toISOString()
+                        start_date: startDate
                     });
 
                     // Deduct stock upon successful payment

@@ -19,6 +19,7 @@ export default function FarmerDashboard() {
   const [coordinates, setCoordinates] = useState(null);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [expandedCycleId, setExpandedCycleId] = useState(null);
 
   const packs = [
     {
@@ -58,6 +59,17 @@ export default function FarmerDashboard() {
         "Nous calculons automatiquement la nourriture.",
         "10 sacs par tranche de 100 poussins",
         "Livraison progressive selon les stades"
+      ]
+    },
+    {
+      id: "aliments",
+      name: "Aliments Seuls",
+      price: "Prix sur demande",
+      details: [
+        "Achetez uniquement des aliments (Démarrage, Croissance, Finition).",
+        "Aucun poussin inclus.",
+        "Pas de cycle de suivi de ferme activé.",
+        "Idéal si vous avez déjà des poussins."
       ]
     }
   ];
@@ -130,15 +142,15 @@ export default function FarmerDashboard() {
     e.preventDefault();
     if (!selectedPack) return;
     
-    let chicksCount = selectedPack.id === 'custom' ? Number(customChicks) : selectedPack.chicks;
-    if (chicksCount <= 0) return alert('Veuillez entrer un nombre valide.');
+    let amountCount = selectedPack.id === 'custom' || selectedPack.id === 'aliments' ? Number(customChicks) : selectedPack.chicks;
+    if (amountCount <= 0) return alert('Veuillez entrer une quantité valide.');
 
     // Proceed to inline payment screen
     setShowPayment(true);
   };
 
   const confirmPaymentAndSubmit = async () => {
-    let chicksCount = selectedPack.id === 'custom' ? Number(customChicks) : selectedPack.chicks;
+    let amountCount = selectedPack.id === 'custom' || selectedPack.id === 'aliments' ? Number(customChicks) : selectedPack.chicks;
     let pref = nextDeliveryPref === 'date' ? `Date demandée: ${nextDeliveryDate}` : 'Rappels automatiques activés';
     
     // Create order as 'En attente'
@@ -146,8 +158,9 @@ export default function FarmerDashboard() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        chicks: chicksCount,
-        pack_type: selectedPack.id === 'custom' ? 'Pack Sur Mesure' : selectedPack.name,
+        chicks: selectedPack.id === 'aliments' ? 0 : amountCount,
+        bags: selectedPack.id === 'aliments' ? amountCount : 0,
+        pack_type: selectedPack.id === 'custom' ? 'Pack Sur Mesure' : (selectedPack.id === 'aliments' ? 'Aliments Seuls' : selectedPack.name),
         delivery_location: deliveryLocation,
         delivery_date: deliveryDate,
         next_bags_delivery_preference: pref,
@@ -158,11 +171,12 @@ export default function FarmerDashboard() {
     if (res.ok) {
       const orderData = await res.json();
       
-      // Calculate amount: For Pack Sur Mesure, 1500 FCFA per chick. Others are fixed.
+      // Calculate amount: For Pack Sur Mesure, 1500 FCFA per chick. Others are fixed. Aliments = 20000 per bag.
       let amount = 0;
       if (selectedPack.id === '100') amount = 150000;
       else if (selectedPack.id === '200') amount = 300000;
-      else amount = chicksCount * 1500;
+      else if (selectedPack.id === 'aliments') amount = amountCount * 20000;
+      else amount = amountCount * 1500;
 
       // Initiate PayUnit Payment
       try {
@@ -294,10 +308,20 @@ export default function FarmerDashboard() {
                 </div>
               ) : (
                 <form onSubmit={handleOrderSubmit} className="flex flex-col gap-4">
-                  {selectedPack.id === 'custom' && (
-                    <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid var(--panel-border)' }}>
-                      <label className="label">Nombre de poussins exact :</label>
-                      <input type="number" placeholder="Ex: 50, 150..." className="input" required value={customChicks} onChange={e => setCustomChicks(e.target.value)} min="1" step="1"/>
+                  {(selectedPack.id === 'custom' || selectedPack.id === 'aliments') && (
+                    <div className="mb-4">
+                      <label className="block mb-2 font-medium" style={{color: '#1e3a8a'}}>
+                        {selectedPack.id === 'aliments' ? 'Nombre de sacs souhaités' : 'Nombre de poussins souhaités'}
+                      </label>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        required 
+                        className="input w-full"
+                        value={customChicks}
+                        onChange={e => setCustomChicks(e.target.value)}
+                        placeholder={selectedPack.id === 'aliments' ? 'Ex: 10' : 'Ex: 150'}
+                      />
                     </div>
                   )}
 
@@ -372,45 +396,66 @@ export default function FarmerDashboard() {
         <p className="text-muted mb-4">Gérez le réapprovisionnement progressif de l'alimentation selon votre stade.</p>
         <div>
           {cycles.length === 0 ? <p className="text-muted">Aucun élevage en cours.</p> : (
-            <div className="grid grid-cols-2 gap-4">
-              {cycles.map(c => (
-                <div key={c.id} style={{ padding: '1.5rem', background: '#ffffff', border: '1px solid var(--panel-border)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-soft)' }}>
-                  <div className="flex justify-between mb-4">
-                    <strong style={{fontSize: '1.2rem', color: 'var(--accent-secondary)'}}>{c.chicks} Poussins</strong>
-                    <span className="badge badge-success" style={{fontSize: '0.9rem'}}>Jour {c.current_day}</span>
-                  </div>
-                  <div style={{padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--accent-primary)'}}>
-                    <div className="text-muted" style={{fontSize: '0.9rem', marginBottom: '0.2rem'}}>Étape Actuelle</div>
-                    <strong style={{display: 'block', fontSize: '1.1rem'}}>{c.current_stage}</strong>
-                    {c.sacs_needed > 0 && (
-                      <div className="mt-2" style={{color: 'var(--accent-secondary)', fontWeight: '500', fontSize: '0.95rem'}}>
-                        Utiliser {c.sacs_needed} sacs d'aliment.
+            <div className="grid grid-cols-1 gap-4">
+              {cycles.map(c => {
+                const isExpanded = expandedCycleId === c.id;
+                return (
+                  <div key={c.id} style={{ padding: '1.5rem', background: '#ffffff', border: '1px solid var(--panel-border)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-soft)' }}>
+                    <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => setExpandedCycleId(isExpanded ? null : c.id)}>
+                      <strong style={{fontSize: '1.2rem', color: 'var(--accent-secondary)'}}>{c.chicks} Poussins (Pack {c.pack_id})</strong>
+                      <div className="flex items-center gap-4">
+                        <span className="badge badge-success" style={{fontSize: '0.9rem'}}>Jour {c.current_day}</span>
+                        <span style={{ fontSize: '1.5rem', color: 'var(--accent-primary)' }}>{isExpanded ? '▴' : '▾'}</span>
                       </div>
-                    )}
-                  </div>
-                  
-                  {/* Replenishment Dialogue System */}
-                  <div className="mt-4 pt-4" style={{borderTop: '1px solid var(--panel-border)'}}>
-                    {c.reminder_active && c.next_stage_sacs > 0 && (
-                      <div style={{ background: '#ecfdf5', border: '1px solid #10b981', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-                        <strong style={{ color: '#065f46', display: 'block', marginBottom: '0.5rem' }}>⚠️ Rappel (Fin d'étape imminente)</strong>
-                        <p style={{ fontSize: '0.9rem', color: '#047857', marginBottom: '0.8rem' }}>
-                          Demain, vous entrez dans une nouvelle étape de croissance. Confirmez maintenant pour recevoir vos <strong>{c.next_stage_sacs} sacs</strong> d'aliment requis !
-                        </p>
-                        <button onClick={() => handleRestockRequest(c)} className="btn btn-primary" style={{ width: '100%', fontSize: '0.9rem', padding: '0.5rem' }}>
-                          ✅ Confirmer la livraison des sacs
-                        </button>
-                      </div>
-                    )}
+                    </div>
+                    
+                    {isExpanded && (
+                      <div className="mt-4 pt-4" style={{borderTop: '1px solid #e2e8f0', animation: 'fadeIn 0.3s ease-in-out'}}>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div style={{padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--accent-primary)'}}>
+                            <div className="text-muted" style={{fontSize: '0.9rem', marginBottom: '0.2rem'}}>Étape Actuelle</div>
+                            <strong style={{display: 'block', fontSize: '1.1rem'}}>{c.current_stage}</strong>
+                            {c.sacs_needed > 0 && (
+                              <div className="mt-2" style={{color: 'var(--accent-secondary)', fontWeight: '500', fontSize: '0.95rem'}}>
+                                Utiliser {c.sacs_needed} sacs d'aliment.
+                              </div>
+                            )}
+                          </div>
+                          <div style={{padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid #f59e0b'}}>
+                            <div className="text-muted" style={{fontSize: '0.9rem', marginBottom: '0.2rem'}}>Évolution Prévue</div>
+                            <ul style={{fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '0.5rem', listStyle: 'disc', paddingLeft: '1rem'}}>
+                              <li>Jours 1-14: Démarrage</li>
+                              <li>Jours 15-28: Croissance</li>
+                              <li>Jours 29-45: Finition</li>
+                            </ul>
+                          </div>
+                        </div>
 
-                    {(!c.reminder_active || c.next_stage_sacs == 0) && c.current_stage !== 'Cycle Terminé' && (
-                       <button onClick={() => handleRestockRequest(c)} className="btn btn-outline" style={{ width: '100%', fontSize: '0.85rem' }}>
-                         Demander l'aliment de la prochaine étape en avance
-                       </button>
+                        {/* Replenishment Dialogue System */}
+                        <div className="mt-4 pt-4" style={{borderTop: '1px solid var(--panel-border)'}}>
+                          {c.reminder_active && c.next_stage_sacs > 0 && (
+                            <div style={{ background: '#ecfdf5', border: '1px solid #10b981', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+                              <strong style={{ color: '#065f46', display: 'block', marginBottom: '0.5rem' }}>⚠️ Rappel (Fin d'étape imminente)</strong>
+                              <p style={{ fontSize: '0.9rem', color: '#047857', marginBottom: '0.8rem' }}>
+                                Demain, vous entrez dans une nouvelle étape de croissance. Confirmez maintenant pour recevoir vos <strong>{c.next_stage_sacs} sacs</strong> d'aliment requis !
+                              </p>
+                              <button onClick={() => handleRestockRequest(c)} className="btn btn-primary" style={{ width: '100%', fontSize: '0.9rem', padding: '0.5rem' }}>
+                                ✅ Confirmer la livraison des sacs
+                              </button>
+                            </div>
+                          )}
+
+                          {(!c.reminder_active || c.next_stage_sacs == 0) && c.current_stage !== 'Cycle Terminé' && (
+                             <button onClick={() => handleRestockRequest(c)} className="btn btn-outline" style={{ width: '100%', fontSize: '0.85rem' }}>
+                               Demander l'aliment de la prochaine étape en avance
+                             </button>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

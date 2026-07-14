@@ -182,75 +182,98 @@ export default function AdminDashboard() {
       <div className="panel">
         <h2 style={{color: 'var(--accent-secondary)'}}>Commandes Globales</h2>
         {orders.length === 0 ? <p className="text-muted">Aucune commande passée.</p> : (
-          <table style={{ width: '100%', textAlign: 'left', marginTop: '1rem', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--panel-border)' }}>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Commande N°</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Éleveur</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Téléphone</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Pack</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Dates</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Lieu de Livraison</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Statut</th>
-                <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map(o => {
-                const orderId = o._id || o.id;
-                return (
-                <tr key={orderId} style={{ borderBottom: '1px solid var(--panel-border)' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: '500' }}>#{orderId.toString().substring(0, 8)}</td>
-                  <td style={{ padding: '0.75rem', fontWeight: '600', color: 'var(--accent-secondary)' }}>{o.farmer_name}</td>
-                  <td style={{ padding: '0.75rem' }}>{o.phone}</td>
-                  <td style={{ padding: '0.75rem', fontWeight: '500' }}>
-                    {o.pack_type || `${o.chicks} Poussins`}
-                  </td>
-                  <td style={{ padding: '0.75rem', fontSize: '0.9rem' }}>
-                    Cmd: {new Date(o.created_at || Date.now()).toLocaleDateString('fr-FR')}<br/>
-                    {o.delivery_date && <span style={{color: 'var(--accent-primary)', fontWeight: '500'}}>Livr: {new Date(o.delivery_date).toLocaleDateString('fr-FR')}</span>}
-                    {o.next_bags_delivery_preference && <div style={{color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.2rem'}}>Suiv: {o.next_bags_delivery_preference}</div>}
-                  </td>
-                  <td style={{ padding: '0.75rem' }}>
-                    {o.delivery_location}
-                    {o.coordinates && (
-                      <div className="text-muted" style={{fontSize: '0.8rem', marginTop: '0.2rem'}}>
-                        📍 <a href={`https://www.google.com/maps?q=${o.coordinates.lat},${o.coordinates.lng}`} target="_blank" rel="noreferrer" style={{color: 'var(--accent-info)', textDecoration: 'none'}}>Carte GPS</a>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {orders.map(o => {
+              const orderId = o._id || o.id;
+              
+              // Calculate specific stage content for display
+              let orderContentList = [];
+              if (o.is_aliments_seuls) {
+                orderContentList.push(`${o.bags || 0} sacs d'Aliments (${o.pack_type})`);
+              } else if (o.pack_type === 'Pack Sur Mesure') {
+                orderContentList.push(`${o.chicks || 0} Poussins d'un jour`);
+                orderContentList.push(`Sacs au prorata (${Math.ceil(o.chicks / 100 * 10)} total)`);
+              } else if (o.chicks) {
+                orderContentList.push(`${o.chicks || 0} Poussins d'un jour`);
+                orderContentList.push('Aliments Démarrage + Croissance + Finition');
+              } else {
+                 orderContentList.push(o.pack_type);
+              }
+
+              return (
+                <div key={orderId} style={{ background: '#ffffff', border: '1px solid var(--panel-border)', borderRadius: '12px', padding: '1.5rem', boxShadow: 'var(--shadow-soft)' }}>
+                  <div className="flex justify-between items-start mb-4" style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '1rem' }}>
+                    <div>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Reçu N° {orderId.toString().substring(0, 8).toUpperCase()}</span>
+                      <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-secondary)', marginTop: '0.2rem' }}>{o.farmer_name}</h3>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
+                        <span>📞 {o.phone}</span>
                       </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '0.75rem' }}>
-                    <span className={`badge ${o.status === 'Livrée' ? 'badge-success' : 'badge-warning'}`}>
+                    </div>
+                    <span className={`badge ${o.status === 'Livrée' ? 'badge-success' : (o.status === 'Confirmée' ? 'badge-primary' : 'badge-warning')}`}>
                       {o.status}
                     </span>
-                  </td>
-                  <td style={{ padding: '0.75rem' }}>
+                  </div>
+
+                  <div className="mb-4">
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Contenu de la commande</strong>
+                    <ul style={{ marginTop: '0.5rem', fontSize: '0.95rem', color: 'var(--accent-secondary)' }}>
+                      {orderContentList.map((item, idx) => (
+                        <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                          <span style={{ color: 'var(--accent-primary)' }}>•</span> {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
+                      <span className="text-muted">Date de commande:</span>
+                      <strong>{new Date(o.created_at || Date.now()).toLocaleDateString('fr-FR')}</strong>
+                    </div>
+                    <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
+                      <span className="text-muted">Date 1ère livraison:</span>
+                      <strong style={{ color: o.delivery_date ? 'var(--accent-primary)' : 'inherit' }}>
+                        {o.delivery_date ? new Date(o.delivery_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
+                      <span className="text-muted">Lieu de livraison:</span>
+                      <strong>
+                        {o.delivery_location}
+                        {o.coordinates && (
+                          <a href={`https://www.google.com/maps?q=${o.coordinates.lat},${o.coordinates.lng}`} target="_blank" rel="noreferrer" style={{ marginLeft: '0.5rem', color: 'var(--accent-info)', textDecoration: 'none' }}>📍</a>
+                        )}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
                     {o.status === 'En attente' && (
                       <button 
-                        className="btn btn-outline" 
-                        style={{ fontSize:'0.8rem', marginRight:'0.5rem', padding: '0.4rem 0.8rem' }} 
+                        className="btn btn-primary" 
+                        style={{ flex: 1, padding: '0.6rem' }} 
                         onClick={() => updateOrderStatus(orderId, 'Confirmée')}
                         disabled={loadingOrder === orderId}
                       >
-                        {loadingOrder === orderId ? <span className="spinner"></span> : 'Confirmer'}
+                        {loadingOrder === orderId ? <span className="spinner"></span> : 'Valider la commande'}
                       </button>
                     )}
                     {o.status === 'Confirmée' && (
                       <button 
-                        className="btn btn-primary" 
-                        style={{ fontSize:'0.8rem', padding: '0.4rem 0.8rem' }} 
+                        className="btn btn-outline" 
+                        style={{ flex: 1, padding: '0.6rem', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)' }} 
                         onClick={() => updateOrderStatus(orderId, 'Livrée')}
                         disabled={loadingOrder === orderId}
                       >
-                        {loadingOrder === orderId ? <span className="spinner"></span> : 'Livrer'}
+                        {loadingOrder === orderId ? <span className="spinner"></span> : 'Marquer l\'étape comme Livrée'}
                       </button>
                     )}
-                  </td>
-                </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
