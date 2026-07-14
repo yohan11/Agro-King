@@ -110,7 +110,7 @@ export default function FarmerDashboard() {
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
       if (!data.user || data.user.role !== 'Farmer') {
-        router.push('/login');
+        router.push('/');
       } else {
         setUser(data.user);
         fetchOrders();
@@ -226,7 +226,7 @@ export default function FarmerDashboard() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
+    router.push('/');
   };
 
   if (!user) return null;
