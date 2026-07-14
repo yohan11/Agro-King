@@ -13,7 +13,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
-      if (!data.user || data.user.role?.toLowerCase() !== 'admin') router.push('/');
+      if (!data.user || data.user.role?.toLowerCase() !== 'admin') router.push('/login');
     });
 
     fetchFarmers();
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/');
+    router.push('/login');
   };
 
   return (
