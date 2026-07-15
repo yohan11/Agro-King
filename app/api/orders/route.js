@@ -28,13 +28,16 @@ export async function GET() {
 
   // Join farmer names
   const enriched = filteredOrders.map(o => {
-    const owner = users.find(u => u.id === o.user_id);
+    const owner = users.find(u => (u._id && u._id.toString() === o.user_id?.toString()) || (u.id && u.id.toString() === o.user_id?.toString()));
     return {
       ...o,
       farmer_name: owner ? owner.name : 'Unknown',
       phone: owner ? owner.phone : 'Unknown'
     };
   });
+
+  console.log('--- ENRICHED ORDERS DEBUG ---');
+  console.log(enriched.slice(0, 2).map(o => ({ id: o._id, farmer_name: o.farmer_name, user_id: o.user_id })));
 
   return NextResponse.json(enriched);
 }

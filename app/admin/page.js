@@ -60,7 +60,7 @@ export default function AdminDashboard() {
   };
 
   const fetchOrders = async () => {
-    const res = await fetch('/api/orders');
+    const res = await fetch('/api/orders', { cache: 'no-store' });
     const data = await res.json();
     setOrders(Array.isArray(data) ? data : []);
   };
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
                   <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
                       <span className="text-muted">Date de commande:</span>
-                      <strong>{new Date(o.created_at || Date.now()).toLocaleDateString('fr-FR')}</strong>
+                      <strong>{new Date(o.created_at || o._id.getTimestamp?.() || '2024-01-01').toLocaleDateString('fr-FR')}</strong>
                     </div>
                     <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
                       <span className="text-muted">Date 1ère livraison:</span>
