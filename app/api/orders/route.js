@@ -51,6 +51,20 @@ export async function POST(req) {
     const chicksCount = Number(data.chicks) || 0;
     const isAlimentsSeuls = data.pack_type === 'Aliments Seuls';
 
+    // Prevent duplicate orders
+    const allOrders = await db.getTable('orders');
+    const recentDuplicate = allOrders.find(o => 
+      o.user_id === user.id && 
+      o.chicks === chicksCount && 
+      o.pack_type === (data.pack_type || 'Sur mesure') &&
+      o.created_at && 
+      (new Date() - new Date(o.created_at)) < 60000 // less than 60 seconds ago
+    );
+
+    if (recentDuplicate) {
+      return NextResponse.json({ error: 'Commande en double détectée. Veuillez patienter.' }, { status: 409 });
+    }
+
     const newOrder = await db.insert('orders', {
       user_id: user.id,
       chicks: chicksCount,

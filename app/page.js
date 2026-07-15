@@ -6,7 +6,7 @@ function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ username: '', password: '', name: '', phone: '', location: '' });
+  const [formData, setFormData] = useState({ phone: '', password: '', name: '', location: '' });
   const [signupSuccessData, setSignupSuccessData] = useState(null);
 
   useEffect(() => {
@@ -77,9 +77,13 @@ function AuthContent() {
     <div style={{ maxWidth: '400px', margin: '4rem auto', textAlign: 'center', padding: '0 1rem' }}>
       <img src="/logo.jpeg" alt="AGRO KING Logo" style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 1.5rem auto', display: 'block', border: '4px solid var(--accent-primary)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
       <h1 style={{ marginBottom: '0.5rem', color: 'var(--accent-secondary)' }}>AGRO KING</h1>
-      <p className="text-muted" style={{ marginBottom: '2rem', fontWeight: '500', fontSize: '1.1rem' }}>
+      <p className="text-muted" style={{ marginBottom: '1rem', fontWeight: '500', fontSize: '1.1rem' }}>
         Recevez vos poussins et aliments directement à votre ferme, au bon moment.
       </p>
+
+      <div style={{ background: '#ecfdf5', color: '#047857', padding: '0.8rem', borderRadius: '8px', marginBottom: '2rem', fontSize: '0.9rem', border: '1px dashed #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+        <span>🤝</span> Rejoignez plus de 500 éleveurs qui nous font confiance. Partenaire AGROCAM.
+      </div>
       
       <div className="panel" style={{ padding: '2rem' }}>
         <h3 style={{ marginBottom: '1.5rem' }}>{isLogin ? 'Connexion' : 'Créer mon compte'}</h3>
@@ -87,11 +91,38 @@ function AuthContent() {
           {!isLogin && (
             <>
               <input type="text" placeholder="Nom complet" className="input" required onChange={e => setFormData({...formData, name: e.target.value})} />
-              <input type="text" placeholder="Téléphone" className="input" required onChange={e => setFormData({...formData, phone: e.target.value})} />
-              <input type="text" placeholder="Ville ou Quartier" className="input" required onChange={e => setFormData({...formData, location: e.target.value})} />
+              <select className="input" required value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}>
+                <option value="">Sélectionnez une ville / quartier</option>
+                <optgroup label="Douala">
+                  <option value="Douala - Akwa">Douala - Akwa</option>
+                  <option value="Douala - Bonabéri">Douala - Bonabéri</option>
+                  <option value="Douala - Bonapriso">Douala - Bonapriso</option>
+                  <option value="Douala - Deido">Douala - Deido</option>
+                  <option value="Douala - Logbessou">Douala - Logbessou</option>
+                  <option value="Douala - Makepe">Douala - Makepe</option>
+                  <option value="Douala - Ndogbong">Douala - Ndogbong</option>
+                  <option value="Douala - PK14">Douala - PK14</option>
+                </optgroup>
+                <optgroup label="Yaoundé">
+                  <option value="Yaoundé - Biyem-Assi">Yaoundé - Biyem-Assi</option>
+                  <option value="Yaoundé - Bastos">Yaoundé - Bastos</option>
+                  <option value="Yaoundé - Mendong">Yaoundé - Mendong</option>
+                  <option value="Yaoundé - Nsam">Yaoundé - Nsam</option>
+                  <option value="Yaoundé - Odza">Yaoundé - Odza</option>
+                </optgroup>
+                <optgroup label="Autres villes">
+                  <option value="Bafoussam">Bafoussam</option>
+                  <option value="Bamenda">Bamenda</option>
+                  <option value="Buea">Buea</option>
+                  <option value="Edea">Edea</option>
+                  <option value="Kribi">Kribi</option>
+                  <option value="Limbe">Limbe</option>
+                  <option value="Autre">Autre (Préciser ultérieurement)</option>
+                </optgroup>
+              </select>
             </>
           )}
-          <input type="text" placeholder={isLogin ? "Nom d'utilisateur ou ID (ex: AGRK-1234)" : "Nom d'utilisateur"} className="input" required onChange={e => setFormData({...formData, username: e.target.value})} />
+          <input type="tel" placeholder={isLogin ? "Téléphone (ex: 699...)" : "Téléphone"} className="input" required onChange={e => setFormData({...formData, phone: e.target.value})} />
           <input type="password" placeholder="Mot de passe" className="input" required onChange={e => setFormData({...formData, password: e.target.value})} />
           <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
             {isLogin ? 'Se connecter' : 'Créer mon compte'}

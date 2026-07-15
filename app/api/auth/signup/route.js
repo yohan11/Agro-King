@@ -3,13 +3,13 @@ import clientPromise from "@/lib/mongodb";
 
 export async function POST(req) {
   try {
-    const { username, password, name, phone, location } = await req.json();
+    const { phone, password, name, location } = await req.json();
     const client = await clientPromise;
     const db = client.db("agroking");
     const users = db.collection("users");
 
     // Vérifie si l'utilisateur existe déjà
-    const existingUser = await users.findOne({ username: username.toLowerCase() });
+    const existingUser = await users.findOne({ phone: phone });
     if (existingUser) {
       return NextResponse.json({ error: "User already exists" }, { status: 400 });
     }
@@ -17,13 +17,12 @@ export async function POST(req) {
     // Génère un identifiant unique
     const unique_id = "AGRK-" + Math.floor(1000 + Math.random() * 9000);
 
-    // Insère l'utilisateur avec username en minuscule
+    // Insère l'utilisateur
     const result = await users.insertOne({
       role: "Farmer",
-      username: username.toLowerCase(),
+      phone: phone,
       password,
       name,
-      phone,
       location,
       unique_id,
     });

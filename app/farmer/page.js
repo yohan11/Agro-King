@@ -19,6 +19,7 @@ export default function FarmerDashboard() {
   const [coordinates, setCoordinates] = useState(null);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [loadingPayment, setLoadingPayment] = useState(false);
   const [expandedCycleId, setExpandedCycleId] = useState(null);
 
   const packs = [
@@ -153,6 +154,7 @@ export default function FarmerDashboard() {
     let amountCount = selectedPack.id === 'custom' || selectedPack.id === 'aliments' ? Number(customChicks) : selectedPack.chicks;
     let pref = nextDeliveryPref === 'date' ? `Date demandée: ${nextDeliveryDate}` : 'Rappels automatiques activés';
     
+    setLoadingPayment(true);
     // Create order as 'En attente'
     const res = await fetch('/api/orders', {
       method: 'POST',
@@ -213,10 +215,12 @@ export default function FarmerDashboard() {
       setSelectedPack(null);
       setCoordinates(null);
       setShowPayment(false);
+      setLoadingPayment(false);
       fetchOrders();
     } else {
       const data = await res.json();
       alert(data.error || 'Erreur lors de la commande.');
+      setLoadingPayment(false);
     }
   };
 
@@ -300,10 +304,10 @@ export default function FarmerDashboard() {
                   </p>
                   
                   <div className="flex gap-2 mt-4">
-                    <button type="button" onClick={() => setShowPayment(false)} className="btn btn-outline" style={{ flex: 1 }}>Annuler / Modifier</button>
-                    <button type="button" onClick={() => confirmPaymentAndSubmit()} className="btn btn-primary" style={{ flex: 2 }}>
-                       Procéder au Paiement ➔
-                    </button>
+                    <button type="button" className="btn btn-outline" onClick={() => setShowPayment(false)} disabled={loadingPayment}>Annuler</button>
+                <button type="button" className="btn btn-primary" onClick={confirmPaymentAndSubmit} disabled={loadingPayment}>
+                  {loadingPayment ? 'Redirection...' : 'Confirmer et payer'}
+                </button>
                   </div>
                 </div>
               ) : (
@@ -352,7 +356,35 @@ export default function FarmerDashboard() {
                   
                   <div>
                     <label className="label">Localisation de la ferme</label>
-                    <input type="text" placeholder="Entrez la ville ou quartier" className="input" required value={deliveryLocation} onChange={e => setDeliveryLocation(e.target.value)} />
+                    <select className="input" required value={deliveryLocation} onChange={e => setDeliveryLocation(e.target.value)}>
+                      <option value="">Sélectionnez une ville / quartier</option>
+                      <optgroup label="Douala">
+                        <option value="Douala - Akwa">Douala - Akwa</option>
+                        <option value="Douala - Bonabéri">Douala - Bonabéri</option>
+                        <option value="Douala - Bonapriso">Douala - Bonapriso</option>
+                        <option value="Douala - Deido">Douala - Deido</option>
+                        <option value="Douala - Logbessou">Douala - Logbessou</option>
+                        <option value="Douala - Makepe">Douala - Makepe</option>
+                        <option value="Douala - Ndogbong">Douala - Ndogbong</option>
+                        <option value="Douala - PK14">Douala - PK14</option>
+                      </optgroup>
+                      <optgroup label="Yaoundé">
+                        <option value="Yaoundé - Biyem-Assi">Yaoundé - Biyem-Assi</option>
+                        <option value="Yaoundé - Bastos">Yaoundé - Bastos</option>
+                        <option value="Yaoundé - Mendong">Yaoundé - Mendong</option>
+                        <option value="Yaoundé - Nsam">Yaoundé - Nsam</option>
+                        <option value="Yaoundé - Odza">Yaoundé - Odza</option>
+                      </optgroup>
+                      <optgroup label="Autres villes">
+                        <option value="Bafoussam">Bafoussam</option>
+                        <option value="Bamenda">Bamenda</option>
+                        <option value="Buea">Buea</option>
+                        <option value="Edea">Edea</option>
+                        <option value="Kribi">Kribi</option>
+                        <option value="Limbe">Limbe</option>
+                        <option value="Autre">Autre (Préciser au moment de la livraison)</option>
+                      </optgroup>
+                    </select>
                     <button type="button" onClick={handleGetLocation} className="btn btn-outline mt-2" style={{fontSize: '0.85rem', padding: '0.5rem', width: 'fit-content'}}>
                       {gettingLocation ? 'Recherche...' : (coordinates ? '📍 Position GPS trouvée' : '📌 Utiliser mon GPS')}
                     </button>

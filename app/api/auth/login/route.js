@@ -4,19 +4,22 @@ import { cookies } from "next/headers";
 
 export async function POST(req) {
   try {
-    const { username, password } = await req.json();
+    const { phone, password } = await req.json();
     const client = await clientPromise;
     const db = client.db("agroking");
     const users = db.collection("users");
 
-    // Vérifie l'utilisateur (username réellement insensible à la casse via regex)
-    const user = await users.findOne({
-      username: { $regex: `^${username}$`, $options: "i" },
-      password
+    // Permettre la connexion par numéro de téléphone ou ID unique
+    const user = await users.findOne({ 
+      $or: [
+        { phone: phone },
+        { unique_id: phone.toUpperCase() },
+        { username: phone.toLowerCase() } // Keep for backward compatibility with old users
+      ]
     });
 
-    if (!user) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    if (!user || user.password !== password) {
+      return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
     }
 
     // Crée une session
