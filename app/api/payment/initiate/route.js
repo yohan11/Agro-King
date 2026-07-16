@@ -18,7 +18,7 @@ export async function POST(request) {
         // Identifiant unique de transaction, utile pour retrouver la commande côté AgroKing
         const cleanPackType = packType.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
         const transactionId = `agroking-${cleanPackType}-${farmerId}-${Date.now()}`;
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://agro-king-website-wheat.vercel.app";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://agroking-app.vercel.app";
 
         const result = await initiatePayment({
             amount,
