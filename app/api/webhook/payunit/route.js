@@ -51,18 +51,39 @@ export async function POST(request) {
         // Si le paiement est confirmé, on peut ici déclencher la suite :
         // - marquer la commande liée (orderId) comme payée dans "orders"
         // - notifier l'éleveur (SMS/email/notification)
-        if (transaction_status === "SUCCESS" && updatedDoc.orderId) {
-            const orderDoc = await database.collection("orders").findOneAndUpdate(
-                { _id: updatedDoc.orderId },
-                { $set: { paymentStatus: "PAID", status: "Confirmée", paidAt: new Date() } }
-            );
+        if (transaction_status === "SUCCESS") {
+            let order = null;
+            let finalOrderId = updatedDoc.orderId;
 
-            // Fetch the updated or original order to get its chicks/pack details
-            const order = orderDoc.value || orderDoc;
+            if (!finalOrderId && updatedDoc.orderDetails) {
+                const newOrder = {
+                    user_id: updatedDoc.farmerId,
+                    ...updatedDoc.orderDetails,
+                    status: "Confirmée",
+                    paymentStatus: "PAID",
+                    paidAt: new Date(),
+                    created_at: new Date().toISOString()
+                };
+                const insertRes = await database.collection("orders").insertOne(newOrder);
+                finalOrderId = insertRes.insertedId;
+                order = newOrder;
+                order._id = finalOrderId;
+                
+                await database.collection("payment").updateOne(
+                    { _id: updatedDoc._id },
+                    { $set: { orderId: finalOrderId } }
+                );
+            } else if (finalOrderId) {
+                const orderDoc = await database.collection("orders").findOneAndUpdate(
+                    { _id: finalOrderId },
+                    { $set: { paymentStatus: "PAID", status: "Confirmée", paidAt: new Date() } }
+                );
+                order = orderDoc.value || orderDoc;
+            }
 
             if (order && !order.is_aliments_seuls) {
                 // Ensure a cycle is created only when payment is effectively done
-                const existingCycle = await database.collection("cycles").findOne({ order_id: updatedDoc.orderId });
+                const existingCycle = await database.collection("cycles").findOne({ order_id: finalOrderId });
                 if (!existingCycle) {
                     let startDate = new Date().toISOString();
                     if (order.delivery_date) {

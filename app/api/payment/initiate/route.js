@@ -6,7 +6,7 @@ import db from "@/lib/db";
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { amount, packType, farmerId, orderId } = body;
+        const { amount, packType, farmerId, orderId, orderDetails } = body;
 
         if (!amount || !packType || !farmerId) {
             return NextResponse.json(
@@ -33,6 +33,7 @@ export async function POST(request) {
             farmerId,
             packType,
             orderId: orderId || null,
+            orderDetails: orderDetails || null,
             amount,
             status: "PENDING",
             provider: null, // rempli plus tard via le webhook (mtnmomo / orange)

@@ -155,73 +155,54 @@ export default function FarmerDashboard() {
     let pref = nextDeliveryPref === 'date' ? `Date demandée: ${nextDeliveryDate}` : 'Rappels automatiques activés';
     
     setLoadingPayment(true);
-    // Create order as 'En attente'
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        chicks: selectedPack.id === 'aliments' ? 0 : amountCount,
-        bags: selectedPack.id === 'aliments' ? amountCount : 0,
-        pack_type: selectedPack.id === 'custom' ? 'Pack Sur Mesure' : (selectedPack.id === 'aliments' ? 'Aliments Seuls' : selectedPack.name),
-        delivery_location: deliveryLocation,
-        delivery_date: deliveryDate,
-        next_bags_delivery_preference: pref,
-        coordinates 
-      })
-    });
 
-    if (res.ok) {
-      const orderData = await res.json();
-      
-      // Calculate amount: For Pack Sur Mesure, 1500 FCFA per chick. Others are fixed. Aliments = 20000 per bag.
-      let amount = 0;
-      if (selectedPack.id === '100') amount = 150000;
-      else if (selectedPack.id === '200') amount = 300000;
-      else if (selectedPack.id === 'aliments') amount = amountCount * 20000;
-      else amount = amountCount * 1500;
+    // Calculate amount
+    let amount = 0;
+    if (selectedPack.id === '100') amount = 150000;
+    else if (selectedPack.id === '200') amount = 300000;
+    else if (selectedPack.id === 'aliments') amount = amountCount * 20000;
+    else amount = amountCount * 1500;
 
-      // Initiate PayUnit Payment
-      try {
-        const payRes = await fetch('/api/payment/initiate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount,
-            packType: selectedPack.id === 'custom' ? 'Pack Sur Mesure' : selectedPack.name,
-            farmerId: user.id,
-            orderId: orderData.id || orderData._id
-          })
-        });
+    const orderDetails = {
+      chicks: selectedPack.id === 'aliments' ? 0 : amountCount,
+      bags: selectedPack.id === 'aliments' ? amountCount : 0,
+      pack_type: selectedPack.id === 'custom' ? 'Pack Sur Mesure' : (selectedPack.id === 'aliments' ? 'Aliments Seuls' : selectedPack.name),
+      delivery_location: deliveryLocation,
+      delivery_date: deliveryDate,
+      next_bags_delivery_preference: pref,
+      coordinates,
+      is_aliments_seuls: selectedPack.id === 'aliments'
+    };
 
-        if (payRes.ok) {
-          const payData = await payRes.json();
-          if (payData.transactionUrl) {
-            window.location.href = payData.transactionUrl;
-            return;
-          }
+    // Initiate PayUnit Payment directly (order will be created by webhook on success)
+    try {
+      const payRes = await fetch('/api/payment/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          packType: orderDetails.pack_type,
+          farmerId: user.id,
+          orderDetails
+        })
+      });
+
+      if (payRes.ok) {
+        const payData = await payRes.json();
+        if (payData.transactionUrl) {
+          window.location.href = payData.transactionUrl;
+          return;
         }
-          const errorData = await payRes.json();
-          alert(`Erreur lors de l'initialisation du paiement PayUnit: ${errorData.error || 'Erreur inconnue'}`);
-      } catch (e) {
-        console.error('PayUnit init error:', e);
-        alert('Erreur de connexion au système de paiement.');
       }
-
-      setDeliveryLocation(''); 
-      setDeliveryDate('');
-      setCustomChicks('');
-      setNextDeliveryDate('');
-      setNextDeliveryPref('auto');
-      setSelectedPack(null);
-      setCoordinates(null);
-      setShowPayment(false);
-      setLoadingPayment(false);
-      fetchOrders();
-    } else {
-      const data = await res.json();
-      alert(data.error || 'Erreur lors de la commande.');
-      setLoadingPayment(false);
+      
+      const errorData = await payRes.json();
+      alert(`Erreur lors de l'initialisation du paiement PayUnit: ${errorData.error || 'Erreur inconnue'}`);
+    } catch (e) {
+      console.error('PayUnit init error:', e);
+      alert('Erreur de connexion au système de paiement.');
     }
+
+    setLoadingPayment(false);
   };
 
   const handleRestockRequest = async (cycle) => {
