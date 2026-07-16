@@ -1,6 +1,6 @@
-// app/api/webhooks/payunit/route.js
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { sendOrangeSMS } from "@/lib/orangeSMS";
 
 export async function POST(request) {
     try {
@@ -125,6 +125,30 @@ export async function POST(request) {
                             );
                         }
                     }
+                }
+            }
+
+            // Envoi du SMS de confirmation via Orange
+            if (order && order.user_id) {
+                const farmer = await database.collection("users").findOne({
+                    $or: [
+                        { id: order.user_id },
+                        { _id: order.user_id }
+                    ]
+                });
+                
+                if (farmer && farmer.phone) {
+                    // Extract a short readable ID: last 6 characters of finalOrderId
+                    const shortId = finalOrderId.toString().slice(-6).toUpperCase();
+                    const orderDate = new Date().getFullYear();
+                    const readableRef = `AK-${orderDate}-${shortId}`;
+                    
+                    const smsMessage = `AgroKing: Paiement recu avec succes. Votre commande ${readableRef} est confirmee. Merci de votre confiance!`;
+                    
+                    // Fire and forget, don't await to avoid blocking PayUnit webhook response
+                    sendOrangeSMS(farmer.phone, smsMessage).catch(err => {
+                        console.error("Erreur asynchrone Orange SMS:", err);
+                    });
                 }
             }
         }
