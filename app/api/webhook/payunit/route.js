@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { sendOrangeSMS } from "@/lib/orangeSMS";
+import { sendWhatsAppMessage } from "@/lib/whatsapp";
 
 export async function POST(request) {
     try {
@@ -143,11 +143,11 @@ export async function POST(request) {
                     const orderDate = new Date().getFullYear();
                     const readableRef = `AK-${orderDate}-${shortId}`;
                     
-                    const smsMessage = `AgroKing: Paiement recu avec succes. Votre commande ${readableRef} est confirmee. Merci de votre confiance!`;
+                    const waMessage = `AgroKing: Paiement recu avec succes ✅\nVotre commande *${readableRef}* est confirmee.\nMerci de votre confiance!`;
                     
                     // Fire and forget, don't await to avoid blocking PayUnit webhook response
-                    sendOrangeSMS(farmer.phone, smsMessage).catch(err => {
-                        console.error("Erreur asynchrone Orange SMS:", err);
+                    sendWhatsAppMessage(farmer.phone, waMessage).catch(err => {
+                        console.error("Erreur asynchrone WhatsApp:", err);
                     });
                 }
             }
