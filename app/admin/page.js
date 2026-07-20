@@ -328,8 +328,10 @@ export default function AdminDashboard() {
               );
             })}
           </div>
-        </>
-      )}
+        )}
+      </div>
+    </>
+  )}
 
       {activeTab === 'locations' && (
         <div className="panel">
