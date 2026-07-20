@@ -32,7 +32,6 @@ export async function POST(req) {
       user: {
         id: result.insertedId,
         role: "Farmer",
-        username: username.toLowerCase(),
         name,
         phone,
         location,
