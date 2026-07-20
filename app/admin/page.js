@@ -10,6 +10,9 @@ export default function AdminDashboard() {
   const [loadingOrder, setLoadingOrder] = useState(null);
   const [isEditingStock, setIsEditingStock] = useState(false);
   const [stockForm, setStockForm] = useState({ demarrage: 0, croissance: 0, finition: 0 });
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [locations, setLocations] = useState([]);
+  const [newLocation, setNewLocation] = useState('');
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
@@ -19,15 +22,49 @@ export default function AdminDashboard() {
     fetchFarmers();
     fetchOrders();
     fetchStock();
+    fetchLocations();
 
     const interval = setInterval(() => {
       fetchFarmers();
       fetchOrders();
       if (!isEditingStock) fetchStock();
+      fetchLocations();
     }, 5000);
 
     return () => clearInterval(interval);
   }, [router, isEditingStock]);
+
+  const fetchLocations = async () => {
+    const res = await fetch('/api/locations');
+    if (res.ok) {
+      setLocations(await res.json());
+    }
+  };
+
+  const handleAddLocation = async (e) => {
+    e.preventDefault();
+    if (!newLocation.trim()) return;
+    const res = await fetch('/api/locations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newLocation })
+    });
+    if (res.ok) {
+      setNewLocation('');
+      fetchLocations();
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Erreur lors de l\'ajout de la zone');
+    }
+  };
+
+  const handleDeleteLocation = async (id) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer cette zone ?')) return;
+    const res = await fetch(`/api/locations/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      fetchLocations();
+    }
+  };
 
   const fetchStock = async () => {
     const res = await fetch('/api/stock');
@@ -101,7 +138,24 @@ export default function AdminDashboard() {
         <button onClick={handleLogout} className="btn btn-outline" style={{padding: '0.5rem 1rem'}}>Déconnexion</button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--panel-border)' }}>
+        <button 
+          onClick={() => setActiveTab('dashboard')} 
+          style={{ padding: '0.5rem 1rem', borderBottom: activeTab === 'dashboard' ? '2px solid var(--accent-primary)' : 'none', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', color: activeTab === 'dashboard' ? 'var(--accent-primary)' : 'var(--text-muted)', fontWeight: activeTab === 'dashboard' ? 'bold' : 'normal', cursor: 'pointer' }}
+        >
+          Tableau de Bord
+        </button>
+        <button 
+          onClick={() => setActiveTab('locations')} 
+          style={{ padding: '0.5rem 1rem', borderBottom: activeTab === 'locations' ? '2px solid var(--accent-primary)' : 'none', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', color: activeTab === 'locations' ? 'var(--accent-primary)' : 'var(--text-muted)', fontWeight: activeTab === 'locations' ? 'bold' : 'normal', cursor: 'pointer' }}
+        >
+          Zones de Livraison
+        </button>
+      </div>
+
+      {activeTab === 'dashboard' && (
+        <>
+          <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="panel" style={{ background: '#eff6ff', borderLeft: '4px solid #3b82f6' }}>
           <div className="flex justify-between items-center mb-2">
             <h2 style={{ color: '#1e3a8a', fontSize: '1.2rem', margin: 0 }}>Stock Virtuel (Sacs)</h2>
@@ -274,9 +328,57 @@ export default function AdminDashboard() {
               );
             })}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
+      {activeTab === 'locations' && (
+        <div className="panel">
+          <div className="flex justify-between items-center mb-4">
+            <h2 style={{color: 'var(--accent-secondary)'}}>Zones de Livraison</h2>
+          </div>
+          
+          <form onSubmit={handleAddLocation} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            <input 
+              type="text" 
+              className="input" 
+              placeholder="Ex: Yaoundé - Mendong" 
+              value={newLocation} 
+              onChange={(e) => setNewLocation(e.target.value)}
+              style={{ flex: 1 }}
+              required
+            />
+            <button type="submit" className="btn btn-primary">Ajouter</button>
+          </form>
+
+          {locations.length === 0 ? (
+            <p className="text-muted">Aucune zone de livraison configurée.</p>
+          ) : (
+            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--panel-border)' }}>
+                  <th style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Nom de la zone</th>
+                  <th style={{ padding: '0.75rem', color: 'var(--text-muted)', width: '100px' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {locations.map(loc => (
+                  <tr key={loc._id} style={{ borderBottom: '1px solid var(--panel-border)' }}>
+                    <td style={{ padding: '0.75rem', fontWeight: '500', color: 'var(--accent-secondary)' }}>{loc.name}</td>
+                    <td style={{ padding: '0.75rem' }}>
+                      <button 
+                        onClick={() => handleDeleteLocation(loc._id)}
+                        style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem' }}
+                      >
+                        Supprimer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
     </div>
   );

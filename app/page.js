@@ -1,13 +1,17 @@
 'use client';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ phone: '', password: '', name: '', location: '' });
+  const [formData, setFormData] = useState({ phone: '', password: '', name: '', location: '', coordinates: null });
   const [signupSuccessData, setSignupSuccessData] = useState(null);
+  const [locations, setLocations] = useState([]);
 
   useEffect(() => {
     const action = searchParams.get('action');
@@ -20,6 +24,11 @@ function AuthContent() {
         location: searchParams.get('location') || ''
       }));
     }
+    
+    // Fetch dynamic locations
+    fetch('/api/locations').then(res => res.ok && res.json()).then(data => {
+      if (data) setLocations(data);
+    });
   }, [searchParams]);
 
   useEffect(() => {
@@ -45,6 +54,15 @@ function AuthContent() {
     if (res.ok) {
       const data = await res.json();
       if (!isLogin && data.user.role === 'Farmer') {
+        // Auto-add new location if it doesn't exist (machine learning pour les humains)
+        if (formData.location && !locations.some(l => l.name.toLowerCase() === formData.location.toLowerCase())) {
+          fetch('/api/locations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: formData.location })
+          }).catch(console.error); // Fire and forget
+        }
+        
         setSignupSuccessData(data.user);
       } else {
         router.push(data.user.role?.toLowerCase() === 'admin' ? '/admin' : '/farmer');
@@ -90,36 +108,29 @@ function AuthContent() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {!isLogin && (
             <>
-              <input type="text" placeholder="Nom complet" className="input" required onChange={e => setFormData({...formData, name: e.target.value})} />
-              <select className="input" required value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}>
-                <option value="">Sélectionnez une ville / quartier</option>
-                <optgroup label="Douala">
-                  <option value="Douala - Akwa">Douala - Akwa</option>
-                  <option value="Douala - Bonabéri">Douala - Bonabéri</option>
-                  <option value="Douala - Bonapriso">Douala - Bonapriso</option>
-                  <option value="Douala - Deido">Douala - Deido</option>
-                  <option value="Douala - Logbessou">Douala - Logbessou</option>
-                  <option value="Douala - Makepe">Douala - Makepe</option>
-                  <option value="Douala - Ndogbong">Douala - Ndogbong</option>
-                  <option value="Douala - PK14">Douala - PK14</option>
-                </optgroup>
-                <optgroup label="Yaoundé">
-                  <option value="Yaoundé - Biyem-Assi">Yaoundé - Biyem-Assi</option>
-                  <option value="Yaoundé - Bastos">Yaoundé - Bastos</option>
-                  <option value="Yaoundé - Mendong">Yaoundé - Mendong</option>
-                  <option value="Yaoundé - Nsam">Yaoundé - Nsam</option>
-                  <option value="Yaoundé - Odza">Yaoundé - Odza</option>
-                </optgroup>
-                <optgroup label="Autres villes">
-                  <option value="Bafoussam">Bafoussam</option>
-                  <option value="Bamenda">Bamenda</option>
-                  <option value="Buea">Buea</option>
-                  <option value="Edea">Edea</option>
-                  <option value="Kribi">Kribi</option>
-                  <option value="Limbe">Limbe</option>
-                  <option value="Autre">Autre (Préciser ultérieurement)</option>
-                </optgroup>
-              </select>
+              <input type="text" placeholder="Nom complet de la ferme / éleveur" className="input" required onChange={e => setFormData({...formData, name: e.target.value})} />
+              
+              <input 
+                type="text" 
+                list="locations-list" 
+                className="input" 
+                placeholder="Ville ou Quartier (tapez ou choisissez)" 
+                required 
+                value={formData.location}
+                onChange={e => setFormData({...formData, location: e.target.value})} 
+              />
+              <datalist id="locations-list">
+                {locations.map(loc => (
+                  <option key={loc._id} value={loc.name} />
+                ))}
+              </datalist>
+
+              <div style={{ marginTop: '0.5rem' }}>
+                <MapPicker 
+                  coordinates={formData.coordinates} 
+                  onLocationSelect={(coords) => setFormData({...formData, coordinates: coords})} 
+                />
+              </div>
             </>
           )}
           <input type="tel" placeholder={isLogin ? "Téléphone (ex: 699...)" : "Téléphone"} className="input" required onChange={e => setFormData({...formData, phone: e.target.value})} />

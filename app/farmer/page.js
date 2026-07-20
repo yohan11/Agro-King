@@ -1,12 +1,17 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
 export default function FarmerDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [cycles, setCycles] = useState([]);
+  const [locations, setLocations] = useState([]);
+  
   // Order flow state
   const [selectedPack, setSelectedPack] = useState(null);
   const [customChicks, setCustomChicks] = useState('');
@@ -75,50 +80,9 @@ export default function FarmerDashboard() {
     }
   ];
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      alert("La géolocalisation n'est pas supportée par votre navigateur.");
-      return;
-    }
-    setGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setCoordinates({ lat, lng });
-
-        try {
-          const res = await fetch('/api/milieus/nearest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lat, lng })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.milieu) {
-              const accept = window.confirm(`Lieu proche détecté : "${data.milieu.name}".\nVoulez-vous l'utiliser comme lieu de livraison ?`);
-              if (accept) {
-                setDeliveryLocation(data.milieu.name);
-              }
-            } else {
-              alert("Position acquise. Veuillez préciser le texte manuellement.");
-            }
-          }
-        } catch (e) {
-          console.log('Milieu lookup error', e);
-        }
-        
-        setGettingLocation(false);
-      },
-      (err) => {
-        alert("Impossible de récupérer la position.");
-        setGettingLocation(false);
-      }
-    );
-  };
-
   const fetchOrders = async () => setOrders(await (await fetch('/api/orders')).json());
   const fetchCycles = async () => setCycles(await (await fetch('/api/cycles')).json());
+  const fetchLocations = async () => setLocations(await (await fetch('/api/locations')).json());
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
@@ -128,12 +92,14 @@ export default function FarmerDashboard() {
         setUser(data.user);
         fetchOrders();
         fetchCycles();
+        fetchLocations();
       }
     });
 
     const interval = setInterval(() => {
       fetchOrders();
       fetchCycles();
+      fetchLocations();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -145,6 +111,15 @@ export default function FarmerDashboard() {
     
     let amountCount = selectedPack.id === 'custom' || selectedPack.id === 'aliments' ? Number(customChicks) : selectedPack.chicks;
     if (amountCount <= 0) return alert('Veuillez entrer une quantité valide.');
+
+    // Auto-add new location if it doesn't exist
+    if (deliveryLocation && !locations.some(l => l.name.toLowerCase() === deliveryLocation.toLowerCase())) {
+      fetch('/api/locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: deliveryLocation })
+      }).catch(console.error); // Fire and forget
+    }
 
     // Proceed to inline payment screen
     setShowPayment(true);
@@ -337,38 +312,27 @@ export default function FarmerDashboard() {
                   
                   <div>
                     <label className="label">Localisation de la ferme</label>
-                    <select className="input" required value={deliveryLocation} onChange={e => setDeliveryLocation(e.target.value)}>
-                      <option value="">Sélectionnez une ville / quartier</option>
-                      <optgroup label="Douala">
-                        <option value="Douala - Akwa">Douala - Akwa</option>
-                        <option value="Douala - Bonabéri">Douala - Bonabéri</option>
-                        <option value="Douala - Bonapriso">Douala - Bonapriso</option>
-                        <option value="Douala - Deido">Douala - Deido</option>
-                        <option value="Douala - Logbessou">Douala - Logbessou</option>
-                        <option value="Douala - Makepe">Douala - Makepe</option>
-                        <option value="Douala - Ndogbong">Douala - Ndogbong</option>
-                        <option value="Douala - PK14">Douala - PK14</option>
-                      </optgroup>
-                      <optgroup label="Yaoundé">
-                        <option value="Yaoundé - Biyem-Assi">Yaoundé - Biyem-Assi</option>
-                        <option value="Yaoundé - Bastos">Yaoundé - Bastos</option>
-                        <option value="Yaoundé - Mendong">Yaoundé - Mendong</option>
-                        <option value="Yaoundé - Nsam">Yaoundé - Nsam</option>
-                        <option value="Yaoundé - Odza">Yaoundé - Odza</option>
-                      </optgroup>
-                      <optgroup label="Autres villes">
-                        <option value="Bafoussam">Bafoussam</option>
-                        <option value="Bamenda">Bamenda</option>
-                        <option value="Buea">Buea</option>
-                        <option value="Edea">Edea</option>
-                        <option value="Kribi">Kribi</option>
-                        <option value="Limbe">Limbe</option>
-                        <option value="Autre">Autre (Préciser au moment de la livraison)</option>
-                      </optgroup>
-                    </select>
-                    <button type="button" onClick={handleGetLocation} className="btn btn-outline mt-2" style={{fontSize: '0.85rem', padding: '0.5rem', width: 'fit-content'}}>
-                      {gettingLocation ? 'Recherche...' : (coordinates ? '📍 Position GPS trouvée' : '📌 Utiliser mon GPS')}
-                    </button>
+                    <input 
+                      type="text" 
+                      list="locations-list" 
+                      className="input" 
+                      placeholder="Ville ou Quartier (tapez ou choisissez)" 
+                      required 
+                      value={deliveryLocation}
+                      onChange={e => setDeliveryLocation(e.target.value)} 
+                    />
+                    <datalist id="locations-list">
+                      {locations.map(loc => (
+                        <option key={loc._id} value={loc.name} />
+                      ))}
+                    </datalist>
+                    
+                    <div style={{ marginTop: '1rem' }}>
+                      <MapPicker 
+                        coordinates={coordinates} 
+                        onLocationSelect={setCoordinates} 
+                      />
+                    </div>
                   </div>
 
                   <button type="submit" className="btn btn-primary mt-2">Continuer vers le paiement</button>

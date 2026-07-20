@@ -3,7 +3,7 @@ import clientPromise from "@/lib/mongodb";
 
 export async function POST(req) {
   try {
-    const { phone, password, name, location } = await req.json();
+    const { phone, password, name, location, coordinates } = await req.json();
     const client = await clientPromise;
     const db = client.db("agroking");
     const users = db.collection("users");
@@ -24,6 +24,7 @@ export async function POST(req) {
       password,
       name,
       location,
+      coordinates,
       unique_id,
     });
 
