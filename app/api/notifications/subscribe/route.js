@@ -13,8 +13,8 @@ export async function POST(req) {
   try {
     const sessionUser = JSON.parse(sessionData.value);
     
-    // Vérifier que l'utilisateur est admin
-    if (sessionUser.role !== 'Admin') {
+    // Vérifier que l'utilisateur est admin (cas insensible)
+    if (sessionUser.role?.toLowerCase() !== 'admin') {
       return NextResponse.json({ error: 'Réservé aux administrateurs' }, { status: 403 });
     }
 
