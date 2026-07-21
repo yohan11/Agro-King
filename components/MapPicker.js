@@ -37,7 +37,7 @@ function ChangeMapView({ center, zoom }) {
   return null;
 }
 
-export default function MapPicker({ coordinates, onLocationSelect, autoGPS = false }) {
+export default function MapPicker({ coordinates, onLocationSelect, onAddressResolve, autoGPS = false }) {
   // Par défaut, centrer sur Douala ou Yaoundé
   const defaultCenter = { lat: 4.0511, lng: 9.7679 }; // Douala
   const [position, setPosition] = useState(null);
@@ -55,6 +55,39 @@ export default function MapPicker({ coordinates, onLocationSelect, autoGPS = fal
     }
   }, [coordinates]);
 
+  const triggerReverseGeocoding = async (lat, lng) => {
+    if (!onAddressResolve) return;
+    try {
+      // Appel à l'API de géocodage inversé gratuite d'OpenStreetMap (Nominatim)
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=fr`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !data.address) return;
+      
+      const addr = data.address;
+      const city = addr.city || addr.town || addr.village || addr.municipality || '';
+      const neighborhood = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || '';
+      
+      let resolved = '';
+      if (city && neighborhood) {
+        resolved = `${city} - ${neighborhood}`;
+      } else if (city) {
+        resolved = city;
+      } else if (neighborhood) {
+        resolved = neighborhood;
+      } else if (data.display_name) {
+        // En dernier recours, on prend les deux premiers éléments de l'adresse brute
+        resolved = data.display_name.split(',').slice(0, 2).join(', ').trim();
+      }
+      
+      if (resolved) {
+        onAddressResolve(resolved);
+      }
+    } catch (e) {
+      console.error('Reverse geocoding failed:', e);
+    }
+  };
+
   const handleGetLocation = () => {
     if (!('geolocation' in navigator)) {
       alert('La géolocalisation n\'est pas supportée par votre navigateur.');
@@ -69,6 +102,7 @@ export default function MapPicker({ coordinates, onLocationSelect, autoGPS = fal
         setMapCenter(coords);
         setZoom(18); // Zoom max pour un calibrage précis sur la ferme
         onLocationSelect(coords);
+        triggerReverseGeocoding(coords.lat, coords.lng);
         setLoading(false);
       },
       (err) => {
@@ -131,6 +165,7 @@ export default function MapPicker({ coordinates, onLocationSelect, autoGPS = fal
           <LocationMarker position={position} setPosition={(coords) => {
             setPosition(coords);
             onLocationSelect(coords);
+            triggerReverseGeocoding(coords.lat, coords.lng);
           }} setZoom={setZoom} />
           <ChangeMapView center={mapCenter} zoom={zoom} />
         </MapContainer>

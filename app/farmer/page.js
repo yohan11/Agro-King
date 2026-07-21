@@ -333,6 +333,7 @@ export default function FarmerDashboard() {
                       <MapPicker 
                         coordinates={coordinates} 
                         onLocationSelect={setCoordinates} 
+                        onAddressResolve={setDeliveryLocation}
                       />
                     </div>
                   </div>

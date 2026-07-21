@@ -108,7 +108,7 @@ function AuthContent() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {!isLogin && (
             <>
-              <input type="text" placeholder="Nom complet de la ferme / éleveur" className="input" required onChange={e => setFormData({...formData, name: e.target.value})} />
+              <input type="text" placeholder="Nom complet de l'éleveur" className="input" required onChange={e => setFormData({...formData, name: e.target.value})} />
               
               <input 
                 type="text" 
@@ -129,6 +129,7 @@ function AuthContent() {
                 <MapPicker 
                   coordinates={formData.coordinates} 
                   onLocationSelect={(coords) => setFormData({...formData, coordinates: coords})} 
+                  onAddressResolve={(addr) => setFormData(prev => ({...prev, location: addr}))}
                   autoGPS={true}
                 />
               </div>
