@@ -129,6 +129,7 @@ function AuthContent() {
                 <MapPicker 
                   coordinates={formData.coordinates} 
                   onLocationSelect={(coords) => setFormData({...formData, coordinates: coords})} 
+                  autoGPS={true}
                 />
               </div>
             </>

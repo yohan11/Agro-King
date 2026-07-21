@@ -90,6 +90,8 @@ export default function FarmerDashboard() {
         router.push('/');
       } else {
         setUser(data.user);
+        if (data.user.location) setDeliveryLocation(data.user.location);
+        if (data.user.coordinates) setCoordinates(data.user.coordinates);
         fetchOrders();
         fetchCycles();
         fetchLocations();
