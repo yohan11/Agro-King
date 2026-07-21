@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
 import { sendAdminPushNotification } from "@/lib/push";
 
@@ -131,10 +132,16 @@ export async function POST(request) {
 
             // Envoi du SMS de confirmation via Orange
             if (order && order.user_id) {
+                let queryId = order.user_id;
+                try {
+                    queryId = new ObjectId(order.user_id);
+                } catch (e) {}
+
                 const farmer = await database.collection("users").findOne({
                     $or: [
                         { id: order.user_id },
-                        { _id: order.user_id }
+                        { _id: order.user_id },
+                        { _id: queryId }
                     ]
                 });
                 
