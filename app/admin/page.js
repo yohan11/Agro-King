@@ -13,6 +13,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [locations, setLocations] = useState([]);
   const [newLocation, setNewLocation] = useState('');
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
@@ -33,6 +35,81 @@ export default function AdminDashboard() {
 
     return () => clearInterval(interval);
   }, [router, isEditingStock]);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.pushManager.getSubscription().then(subscription => {
+          setPushEnabled(!!subscription);
+        });
+      });
+    }
+  }, []);
+
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  const handleSubscribePush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert("Votre navigateur ne supporte pas les notifications push.");
+      return;
+    }
+
+    setPushLoading(true);
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert("Vous devez autoriser les notifications pour activer les alertes.");
+        setPushLoading(false);
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidPublicKey) {
+        throw new Error("Clé publique VAPID introuvable.");
+      }
+
+      const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
+
+      const res = await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription })
+      });
+
+      if (res.ok) {
+        setPushEnabled(true);
+        alert("🔔 Alertes activées avec succès sur cet appareil !");
+      } else {
+        const errData = await res.json();
+        alert(`Échec de l'activation : ${errData.error || 'Erreur inconnue'}`);
+      }
+    } catch (e) {
+      console.error('Subscription failed:', e);
+      alert(`Erreur d'activation : ${e.message}`);
+    }
+
+    setPushLoading(false);
+  };
 
   const fetchLocations = async () => {
     const res = await fetch('/api/locations');
@@ -135,7 +212,22 @@ export default function AdminDashboard() {
           <img src="/logo.jpeg" alt="AGRO KING Logo" style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-primary)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
           <h1 style={{color: 'var(--accent-secondary)'}}>Tableau de Bord Administrateur</h1>
         </div>
-        <button onClick={handleLogout} className="btn btn-outline" style={{padding: '0.5rem 1rem'}}>Déconnexion</button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button 
+            onClick={handleSubscribePush} 
+            className="btn btn-outline" 
+            disabled={pushLoading}
+            style={{ 
+              padding: '0.5rem 1rem', 
+              borderColor: pushEnabled ? 'var(--accent-primary)' : 'inherit',
+              color: pushEnabled ? 'var(--accent-primary)' : 'inherit',
+              fontWeight: pushEnabled ? 'bold' : 'normal'
+            }}
+          >
+            {pushLoading ? 'Activation...' : (pushEnabled ? '🔔 Alertes Actives' : '🔕 Activer les alertes')}
+          </button>
+          <button onClick={handleLogout} className="btn btn-outline" style={{padding: '0.5rem 1rem'}}>Déconnexion</button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--panel-border)' }}>

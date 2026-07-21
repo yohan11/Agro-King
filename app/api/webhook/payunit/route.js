@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
+import { sendAdminPushNotification } from "@/lib/push";
 
 export async function POST(request) {
     try {
@@ -137,17 +138,27 @@ export async function POST(request) {
                     ]
                 });
                 
-                if (farmer && farmer.phone) {
-                    // Extract a short readable ID: last 6 characters of finalOrderId
-                    const shortId = finalOrderId.toString().slice(-6).toUpperCase();
-                    const orderDate = new Date().getFullYear();
-                    const readableRef = `AK-${orderDate}-${shortId}`;
-                    
-                    const waMessage = `AgroKing: Paiement recu avec succes ✅\nVotre commande *${readableRef}* est confirmee.\nMerci de votre confiance!`;
-                    
-                    // Fire and forget, don't await to avoid blocking PayUnit webhook response
-                    sendWhatsAppMessage(farmer.phone, waMessage).catch(err => {
-                        console.error("Erreur asynchrone WhatsApp:", err);
+                if (farmer) {
+                    if (farmer.phone) {
+                        // Extract a short readable ID: last 6 characters of finalOrderId
+                        const shortId = finalOrderId.toString().slice(-6).toUpperCase();
+                        const orderDate = new Date().getFullYear();
+                        const readableRef = `AK-${orderDate}-${shortId}`;
+                        
+                        const waMessage = `AgroKing: Paiement recu avec succes ✅\nVotre commande *${readableRef}* est confirmee.\nMerci de votre confiance!`;
+                        
+                        // Fire and forget, don't await to avoid blocking PayUnit webhook response
+                        sendWhatsAppMessage(farmer.phone, waMessage).catch(err => {
+                            console.error("Erreur asynchrone WhatsApp:", err);
+                        });
+                    }
+
+                    // Envoyer une notification Push Web aux administrateurs
+                    const orderType = order.pack_type || "Commande";
+                    const totalAmount = updatedDoc.amount || payload.transaction_amount || 0;
+                    const pushBody = `L'éleveur ${farmer.name || 'Inconnu'} a commandé : ${orderType} (${totalAmount} FCFA).`;
+                    sendAdminPushNotification("Nouvelle commande !", pushBody, "/admin").catch(err => {
+                        console.error("Erreur asynchrone Push:", err);
                     });
                 }
             }
