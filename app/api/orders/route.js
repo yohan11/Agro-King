@@ -1,6 +1,8 @@
 import db from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import clientPromise from "@/lib/mongodb";
+import webpush from 'web-push';
 
 async function getSessionUser() {
   const cookieStore = await cookies();
@@ -35,9 +37,6 @@ export async function GET() {
       phone: owner ? owner.phone : 'Unknown'
     };
   });
-
-  console.log('--- ENRICHED ORDERS DEBUG ---');
-  console.log(enriched.slice(0, 2).map(o => ({ id: o._id, farmer_name: o.farmer_name, user_id: o.user_id })));
 
   return NextResponse.json(enriched);
 }
@@ -88,6 +87,29 @@ export async function POST(req) {
           lng: data.coordinates.lng,
         });
       }
+    }
+
+    // Trigger automatic push notification to all admin subscribers
+    try {
+      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      const privateKey = process.env.VAPID_PRIVATE_KEY;
+      if (publicKey && privateKey) {
+        webpush.setVapidDetails('mailto:admin@agroking.cm', publicKey, privateKey);
+        const client = await clientPromise;
+        const dbMongo = client.db("agroking");
+        const subs = await dbMongo.collection("push_subscriptions").find({}).toArray();
+
+        if (subs.length > 0) {
+          const payload = JSON.stringify({
+            title: '🚨 Nouvelle Commande !',
+            body: `${user.name || 'Un éleveur'} a passé une commande (${data.pack_type || 'Pack'}) à ${data.delivery_location || 'sa ferme'}.`,
+            url: '/dashboard'
+          });
+          await Promise.allSettled(subs.map(s => webpush.sendNotification(s.subscription, payload)));
+        }
+      }
+    } catch (pushErr) {
+      console.error("Push notification error on order creation:", pushErr);
     }
 
     return NextResponse.json(newOrder, { status: 201 });
