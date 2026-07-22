@@ -45,10 +45,14 @@ function AuthContent() {
     e.preventDefault();
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
     
+    const payload = isLogin 
+      ? { ...formData, requiredRole: 'Farmer' }
+      : formData;
+
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
+      body: JSON.stringify(payload)
     });
     
     if (res.ok) {
@@ -141,10 +145,14 @@ function AuthContent() {
             {isLogin ? 'Se connecter' : 'Créer mon compte'}
           </button>
         </form>
-        <div style={{ marginTop: '1.5rem' }}>
+        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', alignItems: 'center' }}>
           <button type="button" onClick={() => setIsLogin(!isLogin)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: '500' }}>
             {isLogin ? 'Pas encore de compte ? Créer mon compte' : 'Déjà un compte ? Se connecter'}
           </button>
+          
+          <a href="/admin/login" style={{ fontSize: '0.8rem', color: '#64748b', textDecoration: 'none', marginTop: '0.5rem', opacity: 0.8 }}>
+            🔒 Accès Espace Administration
+          </a>
         </div>
       </div>
     </div>

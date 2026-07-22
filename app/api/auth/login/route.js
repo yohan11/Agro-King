@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 
 export async function POST(req) {
   try {
-    const { phone, password } = await req.json();
+    const { phone, password, requiredRole } = await req.json();
     const client = await clientPromise;
     const db = client.db("agroking");
     const users = db.collection("users");
@@ -20,6 +20,21 @@ export async function POST(req) {
 
     if (!user || user.password !== password) {
       return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
+    }
+
+    // Vérification stricte du rôle si requis par le portail de connexion
+    if (requiredRole) {
+      const userRoleNormalized = (user.role || '').toLowerCase();
+      const reqRoleNormalized = requiredRole.toLowerCase();
+      if (userRoleNormalized !== reqRoleNormalized) {
+        if (reqRoleNormalized === 'admin') {
+          return NextResponse.json({ error: "Accès refusé. Ce portail est réservé aux administrateurs." }, { status: 403 });
+        }
+        if (reqRoleNormalized === 'farmer') {
+          return NextResponse.json({ error: "Compte administrateur. Veuillez utiliser la page de connexion Administrateur (/admin/login)." }, { status: 403 });
+        }
+        return NextResponse.json({ error: "Accès refusé pour ce portail." }, { status: 403 });
+      }
     }
 
     // Crée une session
