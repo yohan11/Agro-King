@@ -22,19 +22,10 @@ export async function POST(req) {
       return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
     }
 
-    // Vérification stricte du rôle si requis par le portail de connexion
-    if (requiredRole) {
-      const userRoleNormalized = (user.role || '').toLowerCase();
-      const reqRoleNormalized = requiredRole.toLowerCase();
-      if (userRoleNormalized !== reqRoleNormalized) {
-        if (reqRoleNormalized === 'admin') {
-          return NextResponse.json({ error: "Accès refusé. Ce portail est réservé aux administrateurs." }, { status: 403 });
-        }
-        if (reqRoleNormalized === 'farmer') {
-          return NextResponse.json({ error: "Compte administrateur. Veuillez utiliser la page de connexion Administrateur (/admin/login)." }, { status: 403 });
-        }
-        return NextResponse.json({ error: "Accès refusé pour ce portail." }, { status: 403 });
-      }
+    // L'application client autorise uniquement les comptes éleveurs (Farmer)
+    const targetRole = requiredRole || 'Farmer';
+    if (user.role?.toLowerCase() !== targetRole.toLowerCase()) {
+      return NextResponse.json({ error: "Identifiants ou nom d'utilisateur incorrects." }, { status: 401 });
     }
 
     // Crée une session

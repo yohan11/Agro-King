@@ -35,7 +35,7 @@ function AuthContent() {
     fetch('/api/auth/me').then(res => {
       if (res.ok) {
         res.json().then(data => {
-          if (data.user) router.push(data.user.role?.toLowerCase() === 'admin' ? '/admin' : '/farmer');
+          if (data.user && data.user.role?.toLowerCase() === 'farmer') router.push('/farmer');
         });
       }
     });
@@ -69,7 +69,7 @@ function AuthContent() {
         
         setSignupSuccessData(data.user);
       } else {
-        router.push(data.user.role?.toLowerCase() === 'admin' ? '/admin' : '/farmer');
+        router.push('/farmer');
       }
     } else {
       const data = await res.json();
@@ -149,10 +149,6 @@ function AuthContent() {
           <button type="button" onClick={() => setIsLogin(!isLogin)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: '500' }}>
             {isLogin ? 'Pas encore de compte ? Créer mon compte' : 'Déjà un compte ? Se connecter'}
           </button>
-          
-          <a href="/admin/login" style={{ fontSize: '0.8rem', color: '#64748b', textDecoration: 'none', marginTop: '0.5rem', opacity: 0.8 }}>
-            🔒 Accès Espace Administration
-          </a>
         </div>
       </div>
     </div>
