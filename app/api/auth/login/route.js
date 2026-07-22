@@ -9,12 +9,17 @@ export async function POST(req) {
     const db = client.db("agroking");
     const users = db.collection("users");
 
-    // Permettre la connexion par numéro de téléphone ou ID unique
+    const cleanPhone = (phone || '').replace(/\s+/g, '');
+
+    // Permettre la connexion par numéro de téléphone (avec ou sans espaces) ou ID unique
     const user = await users.findOne({ 
       $or: [
         { phone: phone },
-        { unique_id: phone.toUpperCase() },
-        { username: phone.toLowerCase() } // Keep for backward compatibility with old users
+        { phone: cleanPhone },
+        { unique_id: (phone || '').toUpperCase() },
+        { unique_id: cleanPhone.toUpperCase() },
+        { username: (phone || '').toLowerCase() },
+        { username: cleanPhone.toLowerCase() } // Keep for backward compatibility with old users
       ]
     });
 

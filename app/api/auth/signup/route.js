@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { cookies } from "next/headers";
 
 export async function POST(req) {
   try {
@@ -8,10 +9,18 @@ export async function POST(req) {
     const db = client.db("agroking");
     const users = db.collection("users");
 
-    // Vérifie si l'utilisateur existe déjà
-    const existingUser = await users.findOne({ phone: phone });
+    const cleanPhone = phone.replace(/\s+/g, '');
+
+    // Vérifie si l'utilisateur existe déjà (avec ou sans espaces)
+    const existingUser = await users.findOne({ 
+      $or: [
+        { phone: phone },
+        { phone: cleanPhone }
+      ]
+    });
+    
     if (existingUser) {
-      return NextResponse.json({ error: "User already exists" }, { status: 400 });
+      return NextResponse.json({ error: "Un compte existe déjà avec ce numéro" }, { status: 400 });
     }
 
     // Génère un identifiant unique
@@ -20,12 +29,29 @@ export async function POST(req) {
     // Insère l'utilisateur
     const result = await users.insertOne({
       role: "Farmer",
-      phone: phone,
+      phone: cleanPhone, // Toujours stocker sans espaces
       password,
       name,
       location,
       coordinates,
       unique_id,
+    });
+
+    // Crée la session immédiatement
+    const sessionData = JSON.stringify({
+      id: result.insertedId,
+      role: "Farmer",
+      name: name,
+      unique_id: unique_id
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set("agroking_session", sessionData, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 // 1 jour
     });
 
     return NextResponse.json({
@@ -34,7 +60,7 @@ export async function POST(req) {
         id: result.insertedId,
         role: "Farmer",
         name,
-        phone,
+        phone: cleanPhone,
         location,
         unique_id,
       },
