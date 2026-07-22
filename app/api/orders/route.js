@@ -103,7 +103,9 @@ export async function POST(req) {
           const payload = JSON.stringify({
             title: '🚨 Nouvelle Commande !',
             body: `${user.name || 'Un éleveur'} a passé une commande (${data.pack_type || 'Pack'}) à ${data.delivery_location || 'sa ferme'}.`,
-            url: '/dashboard'
+            icon: '/icon512_maskable.png',
+            badge: '/icon512_maskable.png',
+            url: 'https://agroking-admin.vercel.app/dashboard'
           });
           await Promise.allSettled(subs.map(s => webpush.sendNotification(s.subscription, payload)));
         }
