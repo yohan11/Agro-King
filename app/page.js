@@ -2,6 +2,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import GlobalLoader from '@/components/GlobalLoader';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
@@ -12,6 +13,7 @@ function AuthContent() {
   const [formData, setFormData] = useState({ phone: '', password: '', name: '', location: '', coordinates: null });
   const [signupSuccessData, setSignupSuccessData] = useState(null);
   const [locations, setLocations] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const action = searchParams.get('action');
@@ -43,6 +45,7 @@ function AuthContent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
     
     const payload = isLogin 
@@ -68,10 +71,12 @@ function AuthContent() {
         }
         
         setSignupSuccessData(data.user);
+        setIsLoading(false);
       } else {
         router.push('/farmer');
       }
     } else {
+      setIsLoading(false);
       const data = await res.json();
       alert(data.error || 'Échec de l\'authentification');
     }
@@ -89,8 +94,9 @@ function AuthContent() {
             {signupSuccessData.unique_id}
           </div>
           <p className="text-muted" style={{ margin: '1rem 0', fontSize: '0.9rem' }}>Veuillez conserver cet identifiant, il vous servira de référence pour votre ferme.</p>
-          <button onClick={() => router.push('/farmer')} className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }}>Accéder à mon tableau de bord</button>
+          <button onClick={() => { setIsLoading(true); router.push('/farmer'); }} className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }}>Accéder à mon tableau de bord</button>
         </div>
+        {isLoading && <GlobalLoader text="Redirection vers le tableau de bord..." />}
       </div>
     );
   }
@@ -151,6 +157,7 @@ function AuthContent() {
           </button>
         </div>
       </div>
+      {isLoading && <GlobalLoader text={isLogin ? "Connexion en cours..." : "Création du compte..."} />}
     </div>
   );
 }

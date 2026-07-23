@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import GlobalLoader from '@/components/GlobalLoader';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
@@ -11,6 +12,7 @@ export default function FarmerDashboard() {
   const [orders, setOrders] = useState([]);
   const [cycles, setCycles] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [isPageLoading, setIsPageLoading] = useState(false);
   
   // Order flow state
   const [selectedPack, setSelectedPack] = useState(null);
@@ -168,18 +170,18 @@ export default function FarmerDashboard() {
         const payData = await payRes.json();
         if (payData.transactionUrl) {
           window.location.href = payData.transactionUrl;
-          return;
+          return; // leave loadingPayment true until redirect happens
         }
       }
       
       const errorData = await payRes.json();
       alert(`Erreur lors de l'initialisation du paiement PayUnit: ${errorData.error || 'Erreur inconnue'}`);
+      setLoadingPayment(false);
     } catch (e) {
       console.error('PayUnit init error:', e);
       alert('Erreur de connexion au système de paiement.');
+      setLoadingPayment(false);
     }
-
-    setLoadingPayment(false);
   };
 
   const handleRestockRequest = async (cycle) => {
@@ -187,6 +189,7 @@ export default function FarmerDashboard() {
     const confirmer = window.confirm(`Voulez-vous demander la livraison de vos sacs de la prochaine étape (${sacsReq} sacs) maintenant ?`);
     if (!confirmer) return;
 
+    setIsPageLoading(true);
     await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -196,11 +199,13 @@ export default function FarmerDashboard() {
         delivery_location: user.location || "À la ferme (Lieu habituel)",
       })
     });
-    fetchOrders();
+    await fetchOrders();
+    setIsPageLoading(false);
     alert('Demande de réapprovisionnement envoyée à l\'administrateur ! Vous verrez une commande en attente.');
   };
 
   const handleLogout = async () => {
+    setIsPageLoading(true);
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/');
   };
@@ -263,9 +268,9 @@ export default function FarmerDashboard() {
                   
                   <div className="flex gap-2 mt-4">
                     <button type="button" className="btn btn-outline" onClick={() => setShowPayment(false)} disabled={loadingPayment}>Annuler</button>
-                <button type="button" className="btn btn-primary" onClick={confirmPaymentAndSubmit} disabled={loadingPayment}>
-                  {loadingPayment ? 'Redirection...' : 'Confirmer et payer'}
-                </button>
+                    <button type="button" className="btn btn-primary" onClick={confirmPaymentAndSubmit} disabled={loadingPayment}>
+                      {loadingPayment ? 'Redirection...' : 'Confirmer et payer'}
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -440,7 +445,9 @@ export default function FarmerDashboard() {
           )}
         </div>
       </div>
-
+      {(loadingPayment || isPageLoading) && (
+        <GlobalLoader text={loadingPayment ? "Initialisation du paiement sécurisé..." : "Veuillez patienter..."} />
+      )}
     </div>
   );
 }
