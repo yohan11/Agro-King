@@ -18,13 +18,16 @@ export async function POST(request) {
         // Identifiant unique de transaction, utile pour retrouver la commande côté AgroKing
         const cleanPackType = packType.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
         const transactionId = `agroking-${cleanPackType}-${farmerId}-${Date.now()}`;
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 
-            (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : "https://agroking-app.vercel.app");
+        
+        const host = request.headers.get('host');
+        const protocol = request.headers.get('x-forwarded-proto') || 'https';
+        const dynamicAppUrl = host ? `${protocol}://${host}` : 
+            (process.env.NEXT_PUBLIC_APP_URL || (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : "https://agroking-app.vercel.app"));
 
         const result = await initiatePayment({
             amount,
             transactionId,
-            returnUrl: `${appUrl}/payment-success?transaction_id=${transactionId}&order_id=${orderId || ''}`
+            returnUrl: `${dynamicAppUrl}/payment-success?transaction_id=${transactionId}&order_id=${orderId || ''}`
         });
 
         // Enregistre la transaction en base avec le statut "PENDING"
