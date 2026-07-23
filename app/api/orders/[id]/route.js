@@ -13,6 +13,28 @@ async function getSessionUser() {
   }
 }
 
+export async function GET(req, { params }) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const resolvedParams = await params;
+    const orderId = resolvedParams.id;
+    const currentOrder = await db.getTable('orders').then(orders => orders.find(o => o._id?.toString() === orderId || o.id === orderId));
+    
+    if (!currentOrder) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    
+    // Check if the user is authorized to view this order
+    if (user.role?.toLowerCase() !== 'admin' && currentOrder.user_id !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    return NextResponse.json(currentOrder, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function PUT(req, { params }) {
   const user = await getSessionUser();
   if (!user || user.role?.toLowerCase() !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

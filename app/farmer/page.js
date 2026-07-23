@@ -17,6 +17,9 @@ export default function FarmerDashboard() {
   // Order flow state
   const [selectedPack, setSelectedPack] = useState(null);
   const [customChicks, setCustomChicks] = useState('');
+  // New state for Aliments Seuls
+  const [feedBags, setFeedBags] = useState({ demarrage: 0, croissance: 0, finition: 0 });
+  
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
   
@@ -28,6 +31,8 @@ export default function FarmerDashboard() {
   const [showPayment, setShowPayment] = useState(false);
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [expandedCycleId, setExpandedCycleId] = useState(null);
+
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const packs = [
     {
@@ -72,7 +77,7 @@ export default function FarmerDashboard() {
     {
       id: "aliments",
       name: "Aliments Seuls",
-      price: "Prix sur demande",
+      price: "Démarrage: 22 500 / Croissance: 21 500 / Finition: 19 500",
       details: [
         "Achetez uniquement des aliments (Démarrage, Croissance, Finition).",
         "Aucun poussin inclus.",
@@ -113,8 +118,10 @@ export default function FarmerDashboard() {
     e.preventDefault();
     if (!selectedPack) return;
     
-    let amountCount = selectedPack.id === 'custom' || selectedPack.id === 'aliments' ? Number(customChicks) : selectedPack.chicks;
-    if (amountCount <= 0) return alert('Veuillez entrer une quantité valide.');
+    if (selectedPack.id === 'custom' && Number(customChicks) <= 0) return alert('Veuillez entrer une quantité valide.');
+    if (selectedPack.id === 'aliments' && feedBags.demarrage === 0 && feedBags.croissance === 0 && feedBags.finition === 0) {
+      return alert('Veuillez sélectionner au moins un sac d\'aliment.');
+    }
 
     // Auto-add new location if it doesn't exist
     if (deliveryLocation && !locations.some(l => l.name.toLowerCase() === deliveryLocation.toLowerCase())) {
@@ -130,28 +137,39 @@ export default function FarmerDashboard() {
   };
 
   const confirmPaymentAndSubmit = async () => {
-    let amountCount = selectedPack.id === 'custom' || selectedPack.id === 'aliments' ? Number(customChicks) : selectedPack.chicks;
     let pref = nextDeliveryPref === 'date' ? `Date demandée: ${nextDeliveryDate}` : 'Rappels automatiques activés';
     
     setLoadingPayment(true);
 
     // Calculate amount
     let amount = 0;
-    if (selectedPack.id === '100') amount = 150000;
-    else if (selectedPack.id === '200') amount = 300000;
-    else if (selectedPack.id === 'aliments') amount = amountCount * 20000;
-    else amount = amountCount * 1500;
-
-    const orderDetails = {
-      chicks: selectedPack.id === 'aliments' ? 0 : amountCount,
-      bags: selectedPack.id === 'aliments' ? amountCount : 0,
-      pack_type: selectedPack.id === 'custom' ? 'Pack Sur Mesure' : (selectedPack.id === 'aliments' ? 'Aliments Seuls' : selectedPack.name),
+    let orderDetails = {
       delivery_location: deliveryLocation,
       delivery_date: deliveryDate,
       next_bags_delivery_preference: pref,
       coordinates,
       is_aliments_seuls: selectedPack.id === 'aliments'
     };
+
+    if (selectedPack.id === '100') {
+      amount = 150000;
+      orderDetails.chicks = 100;
+      orderDetails.pack_type = selectedPack.name;
+    } else if (selectedPack.id === '200') {
+      amount = 300000;
+      orderDetails.chicks = 200;
+      orderDetails.pack_type = selectedPack.name;
+    } else if (selectedPack.id === 'aliments') {
+      amount = (feedBags.demarrage * 22500) + (feedBags.croissance * 21500) + (feedBags.finition * 19500);
+      orderDetails.chicks = 0;
+      orderDetails.bags = feedBags.demarrage + feedBags.croissance + feedBags.finition;
+      orderDetails.feed_breakdown = feedBags;
+      orderDetails.pack_type = 'Aliments Seuls';
+    } else {
+      amount = Number(customChicks) * 1500;
+      orderDetails.chicks = Number(customChicks);
+      orderDetails.pack_type = 'Pack Sur Mesure';
+    }
 
     // Initiate PayUnit Payment directly (order will be created by webhook on success)
     try {
@@ -275,10 +293,10 @@ export default function FarmerDashboard() {
                 </div>
               ) : (
                 <form onSubmit={handleOrderSubmit} className="flex flex-col gap-4">
-                  {(selectedPack.id === 'custom' || selectedPack.id === 'aliments') && (
+                  {selectedPack.id === 'custom' && (
                     <div className="mb-4">
                       <label className="block mb-2 font-medium" style={{color: '#1e3a8a'}}>
-                        {selectedPack.id === 'aliments' ? 'Nombre de sacs souhaités' : 'Nombre de poussins souhaités'}
+                        Nombre de poussins souhaités
                       </label>
                       <input 
                         type="number" 
@@ -287,14 +305,37 @@ export default function FarmerDashboard() {
                         className="input w-full"
                         value={customChicks}
                         onChange={e => setCustomChicks(e.target.value)}
-                        placeholder={selectedPack.id === 'aliments' ? 'Ex: 10' : 'Ex: 150'}
+                        placeholder="Ex: 150"
                       />
+                    </div>
+                  )}
+
+                  {selectedPack.id === 'aliments' && (
+                    <div className="mb-4 grid grid-cols-1 gap-3">
+                      <label className="block font-medium" style={{color: '#1e3a8a', marginBottom: '0.5rem'}}>
+                        Indiquez vos besoins en aliments (sacs de 50kg)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input type="number" min="0" className="input" style={{flex: 1}} value={feedBags.demarrage || ''} onChange={e => setFeedBags({...feedBags, demarrage: parseInt(e.target.value) || 0})} placeholder="0" />
+                        <span style={{flex: 2, fontSize: '0.9rem'}}>Sacs Démarrage (22 500 FCFA)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="number" min="0" className="input" style={{flex: 1}} value={feedBags.croissance || ''} onChange={e => setFeedBags({...feedBags, croissance: parseInt(e.target.value) || 0})} placeholder="0" />
+                        <span style={{flex: 2, fontSize: '0.9rem'}}>Sacs Croissance (21 500 FCFA)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="number" min="0" className="input" style={{flex: 1}} value={feedBags.finition || ''} onChange={e => setFeedBags({...feedBags, finition: parseInt(e.target.value) || 0})} placeholder="0" />
+                        <span style={{flex: 2, fontSize: '0.9rem'}}>Sacs Finition (19 500 FCFA)</span>
+                      </div>
+                      <div style={{marginTop: '0.5rem', fontWeight: 'bold', color: 'var(--accent-primary)', textAlign: 'right'}}>
+                        Total estimé : {((feedBags.demarrage * 22500) + (feedBags.croissance * 21500) + (feedBags.finition * 19500)).toLocaleString('fr-FR')} FCFA
+                      </div>
                     </div>
                   )}
 
                   <div>
                     <label className="label">Date de livraison souhaitée (Poussins & 1ère étape)</label>
-                    <input type="date" className="input" required value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
+                    <input type="date" min={todayStr} className="input" required value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
                   </div>
 
                   <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid var(--panel-border)' }}>
@@ -307,7 +348,7 @@ export default function FarmerDashboard() {
                     {nextDeliveryPref === 'date' && (
                       <div className="mt-4">
                         <label className="label" style={{fontSize: '0.8rem'}}>Date de la prochaine livraison (estimation)</label>
-                        <input type="date" className="input" required={nextDeliveryPref === 'date'} value={nextDeliveryDate} onChange={e => setNextDeliveryDate(e.target.value)} />
+                        <input type="date" min={todayStr} className="input" required={nextDeliveryPref === 'date'} value={nextDeliveryDate} onChange={e => setNextDeliveryDate(e.target.value)} />
                       </div>
                     )}
                     {nextDeliveryPref === 'auto' && (
@@ -366,6 +407,9 @@ export default function FarmerDashboard() {
                     <div>Lieu : {o.delivery_location}</div>
                     {o.delivery_date && <div>Poussins prévus : {new Date(o.delivery_date).toLocaleDateString('fr-FR')}</div>}
                     {o.next_bags_delivery_preference && <div style={{marginTop:'0.3rem', color: 'var(--text-main)', fontSize: '0.8rem'}}>Livraisons suivantes : {o.next_bags_delivery_preference}</div>}
+                  </div>
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <button onClick={() => router.push(`/receipt/${o.id || o._id}`)} className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}>📄 Voir le Reçu</button>
                   </div>
                 </div>
               ))}

@@ -110,7 +110,7 @@ function AuthContent() {
       </p>
 
       <div style={{ background: '#ecfdf5', color: '#047857', padding: '0.8rem', borderRadius: '8px', marginBottom: '2rem', fontSize: '0.9rem', border: '1px dashed #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-        <span>🤝</span> Rejoignez plus de 500 éleveurs qui nous font confiance. Partenaire AGROCAM.
+        <span>🤝</span> Rejoignez plus de 500 éleveurs locaux qui nous font confiance.
       </div>
       
       <div className="panel" style={{ padding: '2rem' }}>
