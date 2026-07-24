@@ -14,6 +14,8 @@ export const viewport = {
   themeColor: '#2E7D32',
 };
 
+import GlobalClickLoader from './GlobalClickLoader';
+
 export default function RootLayout({ children }) {
   return (
     <html lang="fr">
@@ -38,6 +40,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        <GlobalClickLoader />
         <main className="container animate-slide-down">
           {children}
         </main>
