@@ -408,9 +408,11 @@ export default function FarmerDashboard() {
                     {o.delivery_date && <div>Poussins prévus : {new Date(o.delivery_date).toLocaleDateString('fr-FR')}</div>}
                     {o.next_bags_delivery_preference && <div style={{marginTop:'0.3rem', color: 'var(--text-main)', fontSize: '0.8rem'}}>Livraisons suivantes : {o.next_bags_delivery_preference}</div>}
                   </div>
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <button onClick={() => router.push(`/receipt/${o.id || o._id}`)} className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}>📄 Voir le Reçu</button>
-                  </div>
+                  {o.status !== 'En attente' && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <button onClick={() => router.push(`/receipt/${o.id || o._id}`)} className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}>📄 Voir le Reçu</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
