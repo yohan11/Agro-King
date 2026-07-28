@@ -400,7 +400,31 @@ export default function FarmerDashboard() {
                 <div key={o.id} style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '1rem' }}>
                   <div className="flex justify-between items-center">
                     <strong style={{ fontSize: '1.1rem' }}>{o.pack_type || `${o.chicks} Poussins`}</strong>
-                    <span className={`badge ${o.status === 'Livrée' ? 'badge-success' : (o.status === 'En attente' ? 'badge-warning' : 'badge-primary')}`} style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}>{o.status}</span>
+                    {(() => {
+                      const s = (o.status || '').toLowerCase();
+                      const isDelivered = s === 'livre' || s === 'livrée' || s === 'livree';
+                      const isPaid = s === 'payée' || s === 'payee' || s === 'confirmée' || s === 'confirmee' || o.paymentStatus === 'PAID' || o.paid === true;
+                      const isCancelled = s === 'annule' || s === 'annulée' || s === 'annulee';
+
+                      let badgeClass = 'badge-warning';
+                      let badgeText = o.status || 'En attente';
+                      if (isDelivered) {
+                        badgeClass = 'badge-success';
+                        badgeText = 'Livrée';
+                      } else if (isPaid) {
+                        badgeClass = 'badge-primary';
+                        badgeText = 'Payée';
+                      } else if (isCancelled) {
+                        badgeClass = 'badge-outline';
+                        badgeText = 'Annulée';
+                      }
+
+                      return (
+                        <span className={`badge ${badgeClass}`} style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}>
+                          {badgeText}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="text-muted mt-2" style={{fontSize: '0.9rem'}}>
                     {o.chicks > 0 && <div>{o.chicks} poussins au total</div>}
