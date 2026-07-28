@@ -105,27 +105,12 @@ export async function POST(req) {
       }
     }
 
-    // Trigger automatic push notification to all admin subscribers
+    // Trigger automatic push & WhatsApp notification to Admin
     try {
-      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      const privateKey = process.env.VAPID_PRIVATE_KEY;
-      if (publicKey && privateKey) {
-        webpush.setVapidDetails('mailto:admin@agroking.cm', publicKey, privateKey);
-        const client = await clientPromise;
-        const dbMongo = client.db("agroking");
-        const subs = await dbMongo.collection("push_subscriptions").find({}).toArray();
-
-        if (subs.length > 0) {
-          const payload = JSON.stringify({
-            title: '🚨 Nouvelle Commande !',
-            body: `${user.name || 'Un éleveur'} a passé une commande (${data.pack_type || 'Pack'}) à ${data.delivery_location || 'sa ferme'}.`,
-            icon: '/icon512_maskable.png',
-            badge: '/icon512_maskable.png',
-            url: 'https://agroking-admin.vercel.app/dashboard'
-          });
-          await Promise.allSettled(subs.map(s => webpush.sendNotification(s.subscription, payload)));
-        }
-      }
+      const { sendAdminPushNotification } = require('@/lib/push');
+      const orderTitle = '🚨 Nouvelle Commande !';
+      const orderBody = `L'éleveur ${user.name || 'Un éleveur'} (${user.phone || 'N/A'}) a passé une commande (${data.pack_type || 'Pack'}) à ${data.delivery_location || 'sa ferme'}.`;
+      await sendAdminPushNotification(orderTitle, orderBody, 'https://agroking-admin.vercel.app/dashboard');
     } catch (pushErr) {
       console.error("Push notification error on order creation:", pushErr);
     }
