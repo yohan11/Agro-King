@@ -118,7 +118,7 @@ function AuthContent() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {!isLogin && (
             <>
-              <input type="text" placeholder="Nom complet de l'éleveur" className="input" required onChange={e => setFormData({...formData, name: e.target.value})} />
+              <input type="text" placeholder="Nom complet de l'éleveur" className="input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               
               <input 
                 type="text" 
@@ -145,7 +145,7 @@ function AuthContent() {
               </div>
             </>
           )}
-          <input type="tel" placeholder={isLogin ? "Téléphone (ex: 699...)" : "Téléphone"} className="input" required onChange={e => setFormData({...formData, phone: e.target.value})} />
+          <input type="tel" placeholder={isLogin ? "Téléphone (ex: 699...)" : "Téléphone"} className="input" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
           <input type="password" placeholder="Mot de passe" className="input" required onChange={e => setFormData({...formData, password: e.target.value})} />
           <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
             {isLogin ? 'Se connecter' : 'Créer mon compte'}

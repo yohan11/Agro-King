@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
-export default function GlobalClickLoader() {
+function GlobalClickLoaderContent() {
   const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -20,9 +20,6 @@ export default function GlobalClickLoader() {
 
       // Don't show loader for links opening in new tabs
       if (target.tagName === 'A' && target.target === '_blank') return;
-      
-      // Don't show if the button is just expanding an accordion (you can check classes if needed)
-      // We will show it by default to meet the user's requirement "apres chaque clic sur un bouton"
       
       setIsNavigating(true);
 
@@ -43,5 +40,13 @@ export default function GlobalClickLoader() {
       <div className="large-spinner"></div>
       <div className="loading-text">Chargement...</div>
     </div>
+  );
+}
+
+export default function GlobalClickLoader() {
+  return (
+    <Suspense fallback={null}>
+      <GlobalClickLoaderContent />
+    </Suspense>
   );
 }

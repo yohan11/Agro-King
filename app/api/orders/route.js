@@ -66,7 +66,11 @@ export async function POST(req) {
 
     const newOrder = await db.insert('orders', {
       user_id: user.id,
+      farmer_id: user.id,
+      farmer_name: user.name || 'Éleveur',
+      farmer_phone: user.phone || 'Non disponible',
       chicks: chicksCount,
+      chicks_count: chicksCount,
       pack_type: data.pack_type || 'Sur mesure',
       delivery_location: data.delivery_location,
       delivery_date: data.delivery_date || null,
