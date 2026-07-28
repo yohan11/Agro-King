@@ -2,14 +2,17 @@ import db from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import clientPromise from "@/lib/mongodb";
-import webpush from 'web-push';
 
 async function getSessionUser() {
   const cookieStore = await cookies();
   const cookie = cookieStore.get('agroking_session');
   if (!cookie) return null;
   try {
-    return JSON.parse(cookie.value);
+    const parsed = JSON.parse(cookie.value);
+    if (parsed && parsed.id) {
+      parsed.id = parsed.id.toString();
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -23,19 +26,33 @@ export async function GET() {
   const users = await db.getTable('users');
 
   let filteredOrders = orders;
-  // If Farmer, show only their orders
+  // If Farmer, show only their orders (match by ID, phone, or unique_id)
   if (user.role === 'Farmer') {
-    const currentUserIdStr = user.id?.toString();
+    const userIdStr = (user.id || user._id)?.toString();
+    const userPhoneStr = user.phone?.toString()?.replace(/\s+/g, '');
+    const userUniqueIdStr = user.unique_id?.toString()?.toUpperCase();
+
     filteredOrders = orders.filter(o => {
-      const orderUserIdStr = (o.user_id || o.farmer_id)?.toString();
-      return orderUserIdStr === currentUserIdStr;
+      const oUserId = (o.user_id || o.farmer_id)?.toString();
+      const oPhone = (o.farmer_phone || o.phone)?.toString()?.replace(/\s+/g, '');
+      const oUniqueId = o.unique_id?.toString()?.toUpperCase();
+
+      return (
+        (userIdStr && oUserId === userIdStr) ||
+        (userPhoneStr && oPhone && oPhone === userPhoneStr) ||
+        (userUniqueIdStr && oUniqueId && oUniqueId === userUniqueIdStr)
+      );
     });
   }
 
   // Join farmer names and format clean string IDs
   const enriched = filteredOrders.map(o => {
     const uId = (o.user_id || o.farmer_id)?.toString();
-    const owner = users.find(u => u._id?.toString() === uId || u.id?.toString() === uId);
+    const owner = users.find(u => 
+      u._id?.toString() === uId || 
+      u.id?.toString() === uId || 
+      (u.phone && o.farmer_phone && u.phone.replace(/\s+/g, '') === o.farmer_phone.replace(/\s+/g, ''))
+    );
     const idStr = o._id?.toString() || o.id?.toString();
     return {
       ...o,
@@ -62,14 +79,28 @@ export async function POST(req) {
     const chicksCount = Number(data.chicks) || 0;
     const isAlimentsSeuls = data.pack_type === 'Aliments Seuls';
 
+    // Fetch full user record to ensure accurate phone/name
+    const client = await clientPromise;
+    const dbMongo = client.db("agroking");
+    let fullUser = null;
+    try {
+      const { ObjectId } = require('mongodb');
+      fullUser = await dbMongo.collection("users").findOne({ _id: new ObjectId(user.id) });
+    } catch (e) {
+      fullUser = await dbMongo.collection("users").findOne({ phone: user.phone });
+    }
+
+    const farmerName = fullUser?.name || user.name || 'Éleveur';
+    const farmerPhone = fullUser?.phone || user.phone || 'Non disponible';
+
     // Prevent duplicate orders
     const allOrders = await db.getTable('orders');
     const recentDuplicate = allOrders.find(o => 
-      o.user_id === user.id && 
+      (o.user_id === user.id || o.farmer_phone === farmerPhone) && 
       o.chicks === chicksCount && 
       o.pack_type === (data.pack_type || 'Sur mesure') &&
       o.created_at && 
-      (new Date() - new Date(o.created_at)) < 60000 // less than 60 seconds ago
+      (new Date() - new Date(o.created_at)) < 60000
     );
 
     if (recentDuplicate) {
@@ -79,8 +110,9 @@ export async function POST(req) {
     const newOrder = await db.insert('orders', {
       user_id: user.id,
       farmer_id: user.id,
-      farmer_name: user.name || 'Éleveur',
-      farmer_phone: user.phone || 'Non disponible',
+      farmer_name: farmerName,
+      farmer_phone: farmerPhone,
+      unique_id: fullUser?.unique_id || user.unique_id || null,
       chicks: chicksCount,
       chicks_count: chicksCount,
       pack_type: data.pack_type || 'Sur mesure',
@@ -109,7 +141,7 @@ export async function POST(req) {
     try {
       const { sendAdminPushNotification } = require('@/lib/push');
       const orderTitle = '🚨 Nouvelle Commande !';
-      const orderBody = `L'éleveur ${user.name || 'Un éleveur'} (${user.phone || 'N/A'}) a passé une commande (${data.pack_type || 'Pack'}) à ${data.delivery_location || 'sa ferme'}.`;
+      const orderBody = `L'éleveur ${farmerName} (${farmerPhone}) a passé une commande (${data.pack_type || 'Pack'}) à ${data.delivery_location || 'sa ferme'}.`;
       await sendAdminPushNotification(orderTitle, orderBody, 'https://agroking-admin.vercel.app/dashboard');
     } catch (pushErr) {
       console.error("Push notification error on order creation:", pushErr);

@@ -11,7 +11,6 @@ export async function POST(req) {
 
     const cleanPhone = (phone || '').replace(/\s+/g, '');
 
-    // Permettre la connexion par numéro de téléphone (avec ou sans espaces) ou ID unique
     const user = await users.findOne({ 
       $or: [
         { phone: phone },
@@ -19,7 +18,7 @@ export async function POST(req) {
         { unique_id: (phone || '').toUpperCase() },
         { unique_id: cleanPhone.toUpperCase() },
         { username: (phone || '').toLowerCase() },
-        { username: cleanPhone.toLowerCase() } // Keep for backward compatibility with old users
+        { username: cleanPhone.toLowerCase() }
       ]
     });
 
@@ -27,17 +26,18 @@ export async function POST(req) {
       return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
     }
 
-    // L'application client autorise uniquement les comptes éleveurs (Farmer)
     const targetRole = requiredRole || 'Farmer';
     if (user.role?.toLowerCase() !== targetRole.toLowerCase()) {
       return NextResponse.json({ error: "Identifiants ou nom d'utilisateur incorrects." }, { status: 401 });
     }
 
-    // Crée une session
+    const userIdStr = user._id ? user._id.toString() : (user.id ? user.id.toString() : '');
+
     const sessionData = JSON.stringify({
-      id: user._id,
+      id: userIdStr,
       role: user.role,
       name: user.name,
+      phone: user.phone,
       unique_id: user.unique_id
     });
 
@@ -53,9 +53,10 @@ export async function POST(req) {
     return NextResponse.json({
       message: "Login successful",
       user: {
-        id: user._id,
+        id: userIdStr,
         role: user.role,
         name: user.name,
+        phone: user.phone,
         unique_id: user.unique_id
       }
     });

@@ -15,7 +15,23 @@ export async function GET() {
     const sessionUser = JSON.parse(sessionData.value);
     const client = await clientPromise;
     const db = client.db("agroking");
-    const dbUser = await db.collection("users").findOne({ _id: new ObjectId(sessionUser.id) });
+
+    let query = {};
+    if (sessionUser.id) {
+      try {
+        query = { _id: new ObjectId(sessionUser.id) };
+      } catch {
+        query = { _id: sessionUser.id };
+      }
+    } else if (sessionUser.phone) {
+      query = { phone: sessionUser.phone };
+    }
+
+    let dbUser = await db.collection("users").findOne(query);
+
+    if (!dbUser && sessionUser.phone) {
+      dbUser = await db.collection("users").findOne({ phone: sessionUser.phone });
+    }
 
     if (!dbUser) {
       return NextResponse.json({ user: null }, { status: 401 });
