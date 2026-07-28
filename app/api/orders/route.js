@@ -25,16 +25,28 @@ export async function GET() {
   let filteredOrders = orders;
   // If Farmer, show only their orders
   if (user.role === 'Farmer') {
-    filteredOrders = orders.filter(o => o.user_id === user.id);
+    const currentUserIdStr = user.id?.toString();
+    filteredOrders = orders.filter(o => {
+      const orderUserIdStr = (o.user_id || o.farmer_id)?.toString();
+      return orderUserIdStr === currentUserIdStr;
+    });
   }
 
-  // Join farmer names
+  // Join farmer names and format clean string IDs
   const enriched = filteredOrders.map(o => {
-    const owner = users.find(u => (u._id && u._id.toString() === o.user_id?.toString()) || (u.id && u.id.toString() === o.user_id?.toString()));
+    const uId = (o.user_id || o.farmer_id)?.toString();
+    const owner = users.find(u => u._id?.toString() === uId || u.id?.toString() === uId);
+    const idStr = o._id?.toString() || o.id?.toString();
     return {
       ...o,
-      farmer_name: owner ? owner.name : 'Unknown',
-      phone: owner ? owner.phone : 'Unknown'
+      _id: idStr,
+      id: idStr,
+      farmer_name: o.farmer_name || (owner ? owner.name : 'Éleveur'),
+      farmer_phone: o.farmer_phone || (owner ? owner.phone : 'Non spécifié'),
+      phone: o.farmer_phone || (owner ? owner.phone : 'Non spécifié'),
+      chicks_count: o.chicks_count !== undefined ? o.chicks_count : (o.chicks || 0),
+      chicks: o.chicks !== undefined ? o.chicks : (o.chicks_count || 0),
+      status: o.status || 'En attente'
     };
   });
 
