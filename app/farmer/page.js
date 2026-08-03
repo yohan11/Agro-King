@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import GlobalLoader from '@/components/GlobalLoader';
+import InstallAppBanner from '@/components/InstallAppBanner';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
 export default function FarmerDashboard() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState('order'); // 'order' | 'orders' | 'cycles' | 'account'
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [cycles, setCycles] = useState([]);
@@ -17,17 +19,12 @@ export default function FarmerDashboard() {
   // Order flow state
   const [selectedPack, setSelectedPack] = useState(null);
   const [customChicks, setCustomChicks] = useState('');
-  // New state for Aliments Seuls
   const [feedBags, setFeedBags] = useState({ demarrage: 0, croissance: 0, finition: 0 });
-  
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
-  
   const [nextDeliveryPref, setNextDeliveryPref] = useState('auto');
   const [nextDeliveryDate, setNextDeliveryDate] = useState('');
-  
   const [coordinates, setCoordinates] = useState(null);
-  const [gettingLocation, setGettingLocation] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [expandedCycleId, setExpandedCycleId] = useState(null);
@@ -39,57 +36,84 @@ export default function FarmerDashboard() {
       id: "100",
       chicks: 100,
       name: "Pack 100 poussins",
-      price: "Estimation: 150 000 FCFA",
+      price: "150 000 FCFA",
+      badge: "Recommandé",
       details: [
-        "100 poussins d'un jour",
-        "1 sac aliment démarrage",
-        "2 sacs aliment croissance",
+        "100 poussins d'un jour vaccinés",
+        "1 sac aliment démarrage (50kg)",
+        "2 sacs aliment croissance 1",
         "2 sacs aliment croissance 2",
         "5 sacs aliment finition",
-        "Livraison progressive selon les stades"
+        "Livraison progressive selon vos stades"
       ]
     },
     {
       id: "200",
       chicks: 200,
       name: "Pack 200 poussins",
-      price: "Estimation: 300 000 FCFA",
+      price: "300 000 FCFA",
+      badge: "Populaire",
       details: [
-        "200 poussins d'un jour",
+        "200 poussins d'un jour vaccinés",
         "2 sacs aliment démarrage",
-        "4 sacs aliment croissance",
+        "4 sacs aliment croissance 1",
         "4 sacs aliment croissance 2",
         "10 sacs aliment finition",
-        "Livraison progressive selon les stades"
+        "Livraison progressive selon vos stades"
       ]
     },
     {
       id: "custom",
       name: "Pack Sur Mesure",
-      price: "Prix sur demande",
+      price: "Calcul automatique",
+      badge: "Flexibilité",
       details: [
-        "Choisissez vous-même le nombre de poussins.",
-        "Nous calculons automatiquement la nourriture.",
-        "10 sacs par tranche de 100 poussins",
-        "Livraison progressive selon les stades"
+        "Choisissez votre quantité exacte de poussins.",
+        "Calcul automatique du plan d'alimentation.",
+        "10 sacs d'aliments par tranche de 100 poussins.",
+        "Suivi et livraisons échelonnées."
       ]
     },
     {
       id: "aliments",
       name: "Aliments Seuls",
-      price: "Démarrage: 22 500 / Croissance: 21 500 / Finition: 19 500",
+      price: "Au choix par sac",
+      badge: "Alimentation",
       details: [
-        "Achetez uniquement des aliments (Démarrage, Croissance, Finition).",
-        "Aucun poussin inclus.",
-        "Pas de cycle de suivi de ferme activé.",
-        "Idéal si vous avez déjà des poussins."
+        "Démarrage : 22 500 FCFA / sac",
+        "Croissance : 21 500 FCFA / sac",
+        "Finition : 19 500 FCFA / sac",
+        "Idéal si vos poussins sont déjà en ferme."
       ]
     }
   ];
 
-  const fetchOrders = async () => setOrders(await (await fetch('/api/orders')).json());
-  const fetchCycles = async () => setCycles(await (await fetch('/api/cycles')).json());
-  const fetchLocations = async () => setLocations(await (await fetch('/api/locations')).json());
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch('/api/orders');
+      if (res.ok) setOrders(await res.json());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchCycles = async () => {
+    try {
+      const res = await fetch('/api/cycles');
+      if (res.ok) setCycles(await res.json());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchLocations = async () => {
+    try {
+      const res = await fetch('/api/locations');
+      if (res.ok) setLocations(await res.json());
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
@@ -109,7 +133,7 @@ export default function FarmerDashboard() {
       fetchOrders();
       fetchCycles();
       fetchLocations();
-    }, 5000);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [router]);
@@ -118,9 +142,11 @@ export default function FarmerDashboard() {
     e.preventDefault();
     if (!selectedPack) return;
     
-    if (selectedPack.id === 'custom' && Number(customChicks) <= 0) return alert('Veuillez entrer une quantité valide.');
+    if (selectedPack.id === 'custom' && Number(customChicks) <= 0) {
+      return alert('Veuillez entrer un nombre valide de poussins.');
+    }
     if (selectedPack.id === 'aliments' && feedBags.demarrage === 0 && feedBags.croissance === 0 && feedBags.finition === 0) {
-      return alert('Veuillez sélectionner au moins un sac d\'aliment.');
+      return alert('Veuillez sélectionner au moins 1 sac d\'aliment.');
     }
 
     // Auto-add new location if it doesn't exist
@@ -129,19 +155,16 @@ export default function FarmerDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: deliveryLocation })
-      }).catch(console.error); // Fire and forget
+      }).catch(console.error);
     }
 
-    // Proceed to inline payment screen
     setShowPayment(true);
   };
 
   const confirmPaymentAndSubmit = async () => {
     let pref = nextDeliveryPref === 'date' ? `Date demandée: ${nextDeliveryDate}` : 'Rappels automatiques activés';
-    
     setLoadingPayment(true);
 
-    // Calculate amount
     let amount = 0;
     let orderDetails = {
       delivery_location: deliveryLocation,
@@ -171,7 +194,6 @@ export default function FarmerDashboard() {
       orderDetails.pack_type = 'Pack Sur Mesure';
     }
 
-    // Initiate PayUnit Payment directly (order will be created by webhook on success)
     try {
       const payRes = await fetch('/api/payment/initiate', {
         method: 'POST',
@@ -188,12 +210,12 @@ export default function FarmerDashboard() {
         const payData = await payRes.json();
         if (payData.transactionUrl) {
           window.location.href = payData.transactionUrl;
-          return; // leave loadingPayment true until redirect happens
+          return;
         }
       }
       
       const errorData = await payRes.json();
-      alert(`Erreur lors de l'initialisation du paiement PayUnit: ${errorData.error || 'Erreur inconnue'}`);
+      alert(`Erreur PayUnit : ${errorData.error || 'Impossible d\'initialiser le paiement.'}`);
       setLoadingPayment(false);
     } catch (e) {
       console.error('PayUnit init error:', e);
@@ -204,7 +226,7 @@ export default function FarmerDashboard() {
 
   const handleRestockRequest = async (cycle) => {
     const sacsReq = cycle.next_stage_sacs || 'les prochains';
-    const confirmer = window.confirm(`Voulez-vous demander la livraison de vos sacs de la prochaine étape (${sacsReq} sacs) maintenant ?`);
+    const confirmer = window.confirm(`Confirmer la demande de livraison des sacs pour l'étape suivante (${sacsReq} sacs) ?`);
     if (!confirmer) return;
 
     setIsPageLoading(true);
@@ -219,7 +241,8 @@ export default function FarmerDashboard() {
     });
     await fetchOrders();
     setIsPageLoading(false);
-    alert('Demande de réapprovisionnement envoyée à l\'administrateur ! Vous verrez une commande en attente.');
+    setActiveTab('orders');
+    alert('Demande de réapprovisionnement transmise ! Vous pouvez la suivre dans l\'onglet Mes Commandes.');
   };
 
   const handleLogout = async () => {
@@ -228,296 +251,613 @@ export default function FarmerDashboard() {
     router.push('/');
   };
 
-  if (!user) return null;
+  if (!user) return <GlobalLoader text="Chargement de votre espace..." />;
+
+  const pendingOrdersCount = orders.filter(o => !['livré', 'livrée', 'livree', 'annulé', 'annulée', 'annulee'].includes((o.status || '').toLowerCase())).length;
+  const activeCyclesCount = cycles.filter(c => c.current_stage !== 'Cycle Terminé').length;
 
   return (
-    <div className="container">
-      <div className="flex justify-between items-center mb-4 mt-2">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <img src="/logo.jpeg" alt="AGRO KING Logo" style={{ width: '45px', height: '45px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-primary)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+    <div className="app-shell">
+      
+      {/* Top Mobile Bar */}
+      <header className="mobile-app-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <img 
+            src="/logo.jpeg" 
+            alt="Logo" 
+            style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-primary)' }} 
+          />
           <div>
-            <h1 style={{color: 'var(--accent-secondary)', fontSize: '1.25rem', margin: 0}}>Bonjour, {user.name}</h1>
-            {user.unique_id && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ID: {user.unique_id}</div>}
+            <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--accent-secondary)', lineHeight: 1.2 }}>
+              {user.name}
+            </div>
+            {user.unique_id && (
+              <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}>
+                {user.unique_id}
+              </span>
+            )}
           </div>
         </div>
-        <button onClick={handleLogout} className="btn btn-outline" style={{padding: '0.4rem 0.8rem', fontSize: '0.85rem'}}>Déconnexion</button>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
+        <button 
+          onClick={handleLogout} 
+          className="btn btn-outline btn-sm"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem' }}
+        >
+          <span>🚪</span> Déconnexion
+        </button>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="container">
         
-        {/* Order Form */}
-        <div className="panel" style={{ alignSelf: 'start' }}>
-          <h2 style={{color: 'var(--accent-secondary)'}}>Commander</h2>
-          
-          {!selectedPack ? (
-            <div className="mt-4">
-              
-              <p className="text-muted mb-4">Choisissez un pack pour votre prochain élevage.</p>
-              <div className="flex flex-col gap-4">
+        {/* TAB 1: COMMANDER */}
+        {activeTab === 'order' && (
+          <div className="animate-fade-in">
+            <InstallAppBanner />
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-secondary)', marginBottom: '0.2rem' }}>Commander Poussins & Aliments</h2>
+              <p className="text-muted" style={{ fontSize: '0.85rem' }}>
+                Sélectionnez votre formule pour lancer votre élevage.
+              </p>
+            </div>
+
+            {!selectedPack ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {packs.map(pack => (
-                  <div key={pack.id} className="panel" style={{ padding: '1rem', border: '2px solid var(--panel-border)', cursor: 'pointer', transition: 'border-color 0.2s', background: pack.id === 'custom' ? '#f0fdf4' : 'white' }} onClick={() => setSelectedPack(pack)}>
-                    <div className="flex justify-between items-center mb-2">
-                      <strong style={{ fontSize: '1.2rem', color: 'var(--accent-primary)'}}>{pack.name}</strong>
+                  <div 
+                    key={pack.id} 
+                    className="pack-card"
+                    onClick={() => setSelectedPack(pack)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <strong style={{ fontSize: '1.05rem', color: 'var(--accent-secondary)' }}>{pack.name}</strong>
                       <span className="badge badge-success">{pack.price}</span>
                     </div>
-                    <ul style={{ paddingLeft: '1.2rem', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                      {pack.details.map((detail, index) => (
-                        <li key={index}>{detail}</li>
+
+                    <ul style={{ paddingLeft: '1.1rem', color: '#475569', fontSize: '0.82rem', lineHeight: 1.5, marginBottom: '0.75rem' }}>
+                      {pack.details.map((detail, idx) => (
+                        <li key={idx}>{detail}</li>
                       ))}
                     </ul>
-                    <button className="btn btn-primary mt-4" style={{ width: '100%' }}>Choisir ce pack</button>
+
+                    <button className="btn btn-primary btn-sm" style={{ width: '100%', fontSize: '0.88rem' }}>
+                      Choisir ce pack ➔
+                    </button>
                   </div>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="mt-4">
-              <div className="flex items-center gap-2 mb-4">
-                <button onClick={() => setSelectedPack(null)} className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.9rem' }}>← Retour</button>
-                <strong style={{ fontSize: '1.1rem' }}>{selectedPack.name}</strong>
-              </div>
-              
-              {showPayment ? (
-                <div style={{ background: '#eff6ff', padding: '1.5rem', borderRadius: '8px', border: '2px solid #3b82f6', marginTop: '1rem' }}>
-                  <h3 style={{ color: '#1e3a8a', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>Finalisation de la commande</h3>
-                  <p style={{ marginBottom: '1rem', color: '#1e40af', fontSize: '0.95rem' }}>
-                    Vous allez être redirigé vers notre portail sécurisé PayUnit pour effectuer votre paiement via Mobile Money ou Carte Bancaire.
-                  </p>
-                  
-                  <div className="flex gap-2 mt-4">
-                    <button type="button" className="btn btn-outline" onClick={() => setShowPayment(false)} disabled={loadingPayment}>Annuler</button>
-                    <button type="button" className="btn btn-primary" onClick={confirmPaymentAndSubmit} disabled={loadingPayment}>
-                      {loadingPayment ? 'Redirection...' : 'Confirmer et payer'}
-                    </button>
-                  </div>
+            ) : (
+              <div className="panel">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid var(--panel-border)', paddingBottom: '0.75rem' }}>
+                  <button 
+                    onClick={() => { setSelectedPack(null); setShowPayment(false); }} 
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.82rem' }}
+                  >
+                    ← Changer de pack
+                  </button>
+                  <strong style={{ color: 'var(--accent-primary)', fontSize: '0.95rem' }}>{selectedPack.name}</strong>
                 </div>
-              ) : (
-                <form onSubmit={handleOrderSubmit} className="flex flex-col gap-4">
-                  {selectedPack.id === 'custom' && (
-                    <div className="mb-4">
-                      <label className="block mb-2 font-medium" style={{color: '#1e3a8a'}}>
-                        Nombre de poussins souhaités
-                      </label>
-                      <input 
-                        type="number" 
-                        min="1" 
-                        required 
-                        className="input w-full"
-                        value={customChicks}
-                        onChange={e => setCustomChicks(e.target.value)}
-                        placeholder="Ex: 150"
-                      />
-                    </div>
-                  )}
 
-                  {selectedPack.id === 'aliments' && (
-                    <div className="mb-4 grid grid-cols-1 gap-3">
-                      <label className="block font-medium" style={{color: '#1e3a8a', marginBottom: '0.5rem'}}>
-                        Indiquez vos besoins en aliments (sacs de 50kg)
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input type="number" min="0" className="input" style={{flex: 1}} value={feedBags.demarrage || ''} onChange={e => setFeedBags({...feedBags, demarrage: parseInt(e.target.value) || 0})} placeholder="0" />
-                        <span style={{flex: 2, fontSize: '0.9rem'}}>Sacs Démarrage (22 500 FCFA)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="number" min="0" className="input" style={{flex: 1}} value={feedBags.croissance || ''} onChange={e => setFeedBags({...feedBags, croissance: parseInt(e.target.value) || 0})} placeholder="0" />
-                        <span style={{flex: 2, fontSize: '0.9rem'}}>Sacs Croissance (21 500 FCFA)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="number" min="0" className="input" style={{flex: 1}} value={feedBags.finition || ''} onChange={e => setFeedBags({...feedBags, finition: parseInt(e.target.value) || 0})} placeholder="0" />
-                        <span style={{flex: 2, fontSize: '0.9rem'}}>Sacs Finition (19 500 FCFA)</span>
-                      </div>
-                      <div style={{marginTop: '0.5rem', fontWeight: 'bold', color: 'var(--accent-primary)', textAlign: 'right'}}>
-                        Total estimé : {((feedBags.demarrage * 22500) + (feedBags.croissance * 21500) + (feedBags.finition * 19500)).toLocaleString('fr-FR')} FCFA
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="label">Date de livraison souhaitée (Poussins & 1ère étape)</label>
-                    <input type="date" min={todayStr} className="input" required value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
-                  </div>
-
-                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid var(--panel-border)' }}>
-                    <label className="label">Connaissez-vous la date de livraison pour les sacs restants (prochaines étapes) ?</label>
-                    <div className="flex gap-2 mt-2">
-                      <button type="button" onClick={() => setNextDeliveryPref('auto')} className={`btn ${nextDeliveryPref === 'auto' ? 'btn-primary' : 'btn-outline'}`} style={{flex: 1, fontSize:'0.9rem'}}>Non, rappelez-moi</button>
-                      <button type="button" onClick={() => setNextDeliveryPref('date')} className={`btn ${nextDeliveryPref === 'date' ? 'btn-primary' : 'btn-outline'}`} style={{flex: 1, fontSize:'0.9rem'}}>Oui, indiquer date</button>
-                    </div>
+                {showPayment ? (
+                  <div style={{ background: '#eff6ff', padding: '1.2rem', borderRadius: '12px', border: '2px solid #3b82f6' }}>
+                    <h3 style={{ color: '#1e3a8a', marginBottom: '0.5rem', fontSize: '1.05rem' }}>Paiement Sécurisé</h3>
+                    <p style={{ color: '#1e40af', fontSize: '0.85rem', marginBottom: '1rem', lineHeight: 1.4 }}>
+                      Vous allez être redirigé vers le portail <strong>PayUnit</strong> pour régler par <strong>Orange Money, MTN Mobile Money</strong> ou Carte Bancaire.
+                    </p>
                     
-                    {nextDeliveryPref === 'date' && (
-                      <div className="mt-4">
-                        <label className="label" style={{fontSize: '0.8rem'}}>Date de la prochaine livraison (estimation)</label>
-                        <input type="date" min={todayStr} className="input" required={nextDeliveryPref === 'date'} value={nextDeliveryDate} onChange={e => setNextDeliveryDate(e.target.value)} />
+                    <div style={{ display: 'flex', gap: '0.6rem' }}>
+                      <button 
+                        type="button" 
+                        className="btn btn-outline" 
+                        onClick={() => setShowPayment(false)} 
+                        disabled={loadingPayment}
+                        style={{ flex: 1 }}
+                      >
+                        Annuler
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-primary" 
+                        onClick={confirmPaymentAndSubmit} 
+                        disabled={loadingPayment}
+                        style={{ flex: 2 }}
+                      >
+                        {loadingPayment ? 'Connexion...' : 'Valider & Payer'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {selectedPack.id === 'custom' && (
+                      <div>
+                        <label className="label">Nombre de poussins souhaités</label>
+                        <input 
+                          type="number" 
+                          min="1" 
+                          required 
+                          className="input"
+                          value={customChicks}
+                          onChange={e => setCustomChicks(e.target.value)}
+                          placeholder="Ex: 150"
+                        />
                       </div>
                     )}
-                    {nextDeliveryPref === 'auto' && (
-                      <p className="text-muted mt-3" style={{fontSize: '0.85rem'}}>
-                        * Le système calculera votre stade et un rappel automatique vous sera envoyé 1 jour avant la fin de chaque étape pour demander la livraison des sacs suivants.
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="label">Localisation de la ferme</label>
-                    <input 
-                      type="text" 
-                      list="locations-list" 
-                      className="input" 
-                      placeholder="Ville ou Quartier (tapez ou choisissez)" 
-                      required 
-                      value={deliveryLocation}
-                      onChange={e => setDeliveryLocation(e.target.value)} 
-                    />
-                    <datalist id="locations-list">
-                      {locations.map(loc => (
-                        <option key={loc._id} value={loc.name} />
-                      ))}
-                    </datalist>
-                    
-                    <div style={{ marginTop: '1rem' }}>
-                      <MapPicker 
-                        coordinates={coordinates} 
-                        onLocationSelect={setCoordinates} 
-                        onAddressResolve={setDeliveryLocation}
-                      />
-                    </div>
-                  </div>
 
-                  <button type="submit" className="btn btn-primary mt-2">Continuer vers le paiement</button>
-                </form>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Existing Orders */}
-        <div className="panel" style={{ alignSelf: 'start' }}>
-          <h2 style={{color: 'var(--accent-secondary)'}}>Mes Commandes</h2>
-          {orders.length === 0 ? <p className="text-muted mt-2">Aucune commande pour le moment.</p> : (
-            <div className="flex flex-col gap-4 mt-4">
-              {orders.map(o => (
-                <div key={o.id} style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '1rem' }}>
-                  <div className="flex justify-between items-center">
-                    <strong style={{ fontSize: '1.1rem' }}>{o.pack_type || `${o.chicks} Poussins`}</strong>
-                    {(() => {
-                      const s = (o.status || '').toLowerCase();
-                      const isDelivered = s === 'livre' || s === 'livrée' || s === 'livree';
-                      const isPaid = s === 'payée' || s === 'payee' || s === 'confirmée' || s === 'confirmee' || o.paymentStatus === 'PAID' || o.paid === true;
-                      const isCancelled = s === 'annule' || s === 'annulée' || s === 'annulee';
-
-                      let badgeClass = 'badge-warning';
-                      let badgeText = o.status || 'En attente';
-                      if (isDelivered) {
-                        badgeClass = 'badge-success';
-                        badgeText = 'Livrée';
-                      } else if (isPaid) {
-                        badgeClass = 'badge-primary';
-                        badgeText = 'Payée';
-                      } else if (isCancelled) {
-                        badgeClass = 'badge-outline';
-                        badgeText = 'Annulée';
-                      }
-
-                      return (
-                        <span className={`badge ${badgeClass}`} style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}>
-                          {badgeText}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <div className="text-muted mt-2" style={{fontSize: '0.9rem'}}>
-                    {o.chicks > 0 && <div>{o.chicks} poussins au total</div>}
-                    <div>Lieu : {o.delivery_location}</div>
-                    {o.delivery_date && <div>Poussins prévus : {new Date(o.delivery_date).toLocaleDateString('fr-FR')}</div>}
-                    {o.next_bags_delivery_preference && <div style={{marginTop:'0.3rem', color: 'var(--text-main)', fontSize: '0.8rem'}}>Livraisons suivantes : {o.next_bags_delivery_preference}</div>}
-                  </div>
-                  {o.status !== 'En attente' && (
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <button onClick={() => router.push(`/receipt/${o.id || o._id}`)} className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}>📄 Voir le Reçu</button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-      </div>
-
-      {/* Cycles */}
-      <div className="panel mt-4">
-        <h2 style={{color: 'var(--accent-secondary)'}}>Mon élevage (Cycles actifs)</h2>
-        <p className="text-muted mb-4">Gérez le réapprovisionnement progressif de l'alimentation selon votre stade.</p>
-        <div>
-          {cycles.length === 0 ? <p className="text-muted">Aucun élevage en cours.</p> : (
-            <div className="grid grid-cols-1 gap-4">
-              {cycles.map(c => {
-                const isExpanded = expandedCycleId === c.id;
-                return (
-                  <div key={c.id} style={{ padding: '1.5rem', background: '#ffffff', border: '1px solid var(--panel-border)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-soft)' }}>
-                    <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => setExpandedCycleId(isExpanded ? null : c.id)}>
-                      <strong style={{fontSize: '1.2rem', color: 'var(--accent-secondary)'}}>{c.chicks} Poussins (Pack {c.pack_id})</strong>
-                      <div className="flex items-center gap-4">
-                        <span className="badge badge-success" style={{fontSize: '0.9rem'}}>Jour {c.current_day}</span>
-                        <span style={{ fontSize: '1.5rem', color: 'var(--accent-primary)' }}>{isExpanded ? '▴' : '▾'}</span>
-                      </div>
-                    </div>
-                    
-                    {isExpanded && (
-                      <div className="mt-4 pt-4" style={{borderTop: '1px solid #e2e8f0', animation: 'fadeIn 0.3s ease-in-out'}}>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div style={{padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--accent-primary)'}}>
-                            <div className="text-muted" style={{fontSize: '0.9rem', marginBottom: '0.2rem'}}>Étape Actuelle</div>
-                            <strong style={{display: 'block', fontSize: '1.1rem'}}>{c.current_stage}</strong>
-                            {c.sacs_needed > 0 && (
-                              <div className="mt-2" style={{color: 'var(--accent-secondary)', fontWeight: '500', fontSize: '0.95rem'}}>
-                                Utiliser {c.sacs_needed} sacs d'aliment.
-                              </div>
-                            )}
-                          </div>
-                          <div style={{padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid #f59e0b'}}>
-                            <div className="text-muted" style={{fontSize: '0.9rem', marginBottom: '0.2rem'}}>Évolution Prévue</div>
-                            <ul style={{fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '0.5rem', listStyle: 'disc', paddingLeft: '1rem'}}>
-                              <li>Jours 1-14: Démarrage</li>
-                              <li>Jours 15-28: Croissance</li>
-                              <li>Jours 29-45: Finition</li>
-                            </ul>
-                          </div>
+                    {selectedPack.id === 'aliments' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <label className="label">Quantités d'aliments (Sacs de 50kg)</label>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            className="input" 
+                            style={{ width: '80px', textAlign: 'center' }} 
+                            value={feedBags.demarrage || ''} 
+                            onChange={e => setFeedBags({...feedBags, demarrage: parseInt(e.target.value) || 0})} 
+                            placeholder="0" 
+                          />
+                          <span style={{ fontSize: '0.82rem', color: '#334155' }}>Démarrage (22 500 F)</span>
                         </div>
 
-                        {/* Replenishment Dialogue System */}
-                        <div className="mt-4 pt-4" style={{borderTop: '1px solid var(--panel-border)'}}>
-                          {c.reminder_active && c.next_stage_sacs > 0 && (
-                            <div style={{ background: '#ecfdf5', border: '1px solid #10b981', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-                              <strong style={{ color: '#065f46', display: 'block', marginBottom: '0.5rem' }}>⚠️ Rappel (Fin d'étape imminente)</strong>
-                              <p style={{ fontSize: '0.9rem', color: '#047857', marginBottom: '0.8rem' }}>
-                                Demain, vous entrez dans une nouvelle étape de croissance. Confirmez maintenant pour recevoir vos <strong>{c.next_stage_sacs} sacs</strong> d'aliment requis !
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            className="input" 
+                            style={{ width: '80px', textAlign: 'center' }} 
+                            value={feedBags.croissance || ''} 
+                            onChange={e => setFeedBags({...feedBags, croissance: parseInt(e.target.value) || 0})} 
+                            placeholder="0" 
+                          />
+                          <span style={{ fontSize: '0.82rem', color: '#334155' }}>Croissance (21 500 F)</span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            className="input" 
+                            style={{ width: '80px', textAlign: 'center' }} 
+                            value={feedBags.finition || ''} 
+                            onChange={e => setFeedBags({...feedBags, finition: parseInt(e.target.value) || 0})} 
+                            placeholder="0" 
+                          />
+                          <span style={{ fontSize: '0.82rem', color: '#334155' }}>Finition (19 500 F)</span>
+                        </div>
+
+                        <div style={{ fontWeight: '700', color: 'var(--accent-primary)', textAlign: 'right', fontSize: '0.95rem' }}>
+                          Total : {((feedBags.demarrage * 22500) + (feedBags.croissance * 21500) + (feedBags.finition * 19500)).toLocaleString('fr-FR')} FCFA
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="label">Date de livraison souhaitée (Poussins & 1ers sacs)</label>
+                      <input 
+                        type="date" 
+                        min={todayStr} 
+                        className="input" 
+                        required 
+                        value={deliveryDate} 
+                        onChange={e => setDeliveryDate(e.target.value)} 
+                      />
+                    </div>
+
+                    <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--panel-border)' }}>
+                      <label className="label">Livraison des étapes suivantes (Sacs restants)</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
+                        <button 
+                          type="button" 
+                          onClick={() => setNextDeliveryPref('auto')} 
+                          className={`btn btn-sm ${nextDeliveryPref === 'auto' ? 'btn-primary' : 'btn-outline'}`} 
+                          style={{ flex: 1, fontSize: '0.78rem' }}
+                        >
+                          🔔 Rappel automatique
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => setNextDeliveryPref('date')} 
+                          className={`btn btn-sm ${nextDeliveryPref === 'date' ? 'btn-primary' : 'btn-outline'}`} 
+                          style={{ flex: 1, fontSize: '0.78rem' }}
+                        >
+                          📅 Définir date
+                        </button>
+                      </div>
+                      
+                      {nextDeliveryPref === 'date' && (
+                        <div style={{ marginTop: '0.75rem' }}>
+                          <label className="label" style={{ fontSize: '0.78rem' }}>Date estimée de la prochaine étape</label>
+                          <input 
+                            type="date" 
+                            min={todayStr} 
+                            className="input" 
+                            required={nextDeliveryPref === 'date'} 
+                            value={nextDeliveryDate} 
+                            onChange={e => setNextDeliveryDate(e.target.value)} 
+                          />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <label className="label">Localisation de la ferme</label>
+                      <input 
+                        type="text" 
+                        list="locations-list" 
+                        className="input" 
+                        placeholder="Ex: Douala - Logbessou" 
+                        required 
+                        value={deliveryLocation}
+                        onChange={e => setDeliveryLocation(e.target.value)} 
+                      />
+                      <datalist id="locations-list">
+                        {locations.map(loc => (
+                          <option key={loc._id} value={loc.name} />
+                        ))}
+                      </datalist>
+                      
+                      <div style={{ marginTop: '0.65rem' }}>
+                        <MapPicker 
+                          coordinates={coordinates} 
+                          onLocationSelect={setCoordinates} 
+                          onAddressResolve={setDeliveryLocation}
+                        />
+                      </div>
+                    </div>
+
+                    <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
+                      Continuer vers le paiement ➔
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: MES COMMANDES */}
+        {activeTab === 'orders' && (
+          <div className="animate-fade-in">
+            <div style={{ marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-secondary)', marginBottom: '0.2rem' }}>Mes Commandes</h2>
+              <p className="text-muted" style={{ fontSize: '0.85rem' }}>
+                Historique et suivi de vos approvisionnements.
+              </p>
+            </div>
+
+            {orders.length === 0 ? (
+              <div className="panel" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📦</div>
+                <h3 style={{ color: '#475569', fontSize: '1rem' }}>Aucune commande pour le moment</h3>
+                <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                  Vos commandes de poussins et aliments apparaîtront ici.
+                </p>
+                <button onClick={() => setActiveTab('order')} className="btn btn-primary btn-sm">
+                  Passer ma première commande
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {orders.map(o => {
+                  const s = (o.status || '').toLowerCase();
+                  const isDelivered = s === 'livre' || s === 'livrée' || s === 'livree';
+                  const isPaid = s === 'payée' || s === 'payee' || s === 'confirmée' || s === 'confirmee' || o.paymentStatus === 'PAID' || o.paid === true;
+                  const isCancelled = s === 'annule' || s === 'annulée' || s === 'annulee';
+
+                  let badgeClass = 'badge-warning';
+                  let badgeText = o.status || 'En attente';
+                  if (isDelivered) {
+                    badgeClass = 'badge-success';
+                    badgeText = 'Livrée ✅';
+                  } else if (isPaid) {
+                    badgeClass = 'badge-primary';
+                    badgeText = 'Payée 💳';
+                  } else if (isCancelled) {
+                    badgeClass = 'badge-outline';
+                    badgeText = 'Annulée ❌';
+                  }
+
+                  return (
+                    <div key={o.id || o._id} className="panel" style={{ margin: 0, padding: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <strong style={{ fontSize: '0.98rem', color: 'var(--accent-secondary)' }}>
+                          {o.pack_type || `${o.chicks} Poussins`}
+                        </strong>
+                        <span className={`badge ${badgeClass}`}>
+                          {badgeText}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        {o.chicks > 0 && <div>🐣 <strong>{o.chicks}</strong> poussins</div>}
+                        <div>📍 {o.delivery_location}</div>
+                        {o.delivery_date && <div>📅 Prévue le : {new Date(o.delivery_date).toLocaleDateString('fr-FR')}</div>}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem', borderTop: '1px solid var(--panel-border)', paddingTop: '0.5rem' }}>
+                        <button 
+                          onClick={() => router.push(`/receipt/${o.id || o._id}`)} 
+                          className="btn btn-outline btn-sm"
+                          style={{ fontSize: '0.78rem' }}
+                        >
+                          📄 Voir le Reçu
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: MON ELEVAGE (CYCLES) */}
+        {activeTab === 'cycles' && (
+          <div className="animate-fade-in">
+            <div style={{ marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-secondary)', marginBottom: '0.2rem' }}>Mon Élevage & Suivi</h2>
+              <p className="text-muted" style={{ fontSize: '0.85rem' }}>
+                Suivez la croissance de vos poussins et anticipez les aliments.
+              </p>
+            </div>
+
+            {cycles.length === 0 ? (
+              <div className="panel" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📈</div>
+                <h3 style={{ color: '#475569', fontSize: '1rem' }}>Aucun cycle d'élevage actif</h3>
+                <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                  Votre cycle s'active automatiquement dès la validation d'une commande de poussins.
+                </p>
+                <button onClick={() => setActiveTab('order')} className="btn btn-primary btn-sm">
+                  Commander des poussins
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {cycles.map(c => {
+                  const isExpanded = expandedCycleId === (c.id || c._id);
+                  return (
+                    <div key={c.id || c._id} className="panel" style={{ margin: 0, padding: '1.1rem' }}>
+                      <div 
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                        onClick={() => setExpandedCycleId(isExpanded ? null : (c.id || c._id))}
+                      >
+                        <div>
+                          <strong style={{ fontSize: '1.05rem', color: 'var(--accent-secondary)', display: 'block' }}>
+                            {c.chicks} Poussins
+                          </strong>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pack {c.pack_id}</span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span className="badge badge-success" style={{ fontSize: '0.82rem' }}>
+                            Jour {c.current_day}
+                          </span>
+                          <span style={{ fontSize: '1.2rem', color: 'var(--accent-primary)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                            ▾
+                          </span>
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid var(--panel-border)' }} className="animate-fade-in">
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                            <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', borderLeft: '3px solid var(--accent-primary)' }}>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Étape Actuelle</div>
+                              <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'block' }}>{c.current_stage}</strong>
+                              {c.sacs_needed > 0 && (
+                                <div style={{ fontSize: '0.78rem', color: 'var(--accent-secondary)', marginTop: '0.2rem' }}>
+                                  {c.sacs_needed} sacs requis
+                                </div>
+                              )}
+                            </div>
+
+                            <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b' }}>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Guide de Croissance</div>
+                              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '0.2rem', lineHeight: 1.3 }}>
+                                • J1-14: Démarrage<br />
+                                • J15-28: Croissance<br />
+                                • J29-45: Finition
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Restock Action */}
+                          {c.reminder_active && c.next_stage_sacs > 0 ? (
+                            <div style={{ background: '#ecfdf5', border: '1px solid #10b981', padding: '0.85rem', borderRadius: '10px', marginTop: '0.5rem' }}>
+                              <strong style={{ color: '#065f46', fontSize: '0.85rem', display: 'block', marginBottom: '0.3rem' }}>
+                                🔔 Fin d'étape imminente
+                              </strong>
+                              <p style={{ fontSize: '0.78rem', color: '#047857', marginBottom: '0.6rem' }}>
+                                Demandez vos <strong>{c.next_stage_sacs} sacs</strong> d'aliment pour la prochaine étape de croissance.
                               </p>
-                              <button onClick={() => handleRestockRequest(c)} className="btn btn-primary" style={{ width: '100%', fontSize: '0.9rem', padding: '0.5rem' }}>
+                              <button onClick={() => handleRestockRequest(c)} className="btn btn-primary btn-sm" style={{ width: '100%' }}>
                                 ✅ Confirmer la livraison des sacs
                               </button>
                             </div>
-                          )}
-
-                          {(!c.reminder_active || c.next_stage_sacs == 0) && c.current_stage !== 'Cycle Terminé' && (
-                             <button onClick={() => handleRestockRequest(c)} className="btn btn-outline" style={{ width: '100%', fontSize: '0.85rem' }}>
-                               Demander l'aliment de la prochaine étape en avance
-                             </button>
+                          ) : (
+                            c.current_stage !== 'Cycle Terminé' && (
+                              <button 
+                                onClick={() => handleRestockRequest(c)} 
+                                className="btn btn-outline btn-sm" 
+                                style={{ width: '100%', fontSize: '0.8rem', marginTop: '0.35rem' }}
+                              >
+                                🚚 Demander les sacs de l'étape suivante en avance
+                              </button>
+                            )
                           )}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: MON COMPTE */}
+        {activeTab === 'account' && (
+          <div className="animate-fade-in">
+            <div style={{ marginBottom: '1rem' }}>
+              <h2 style={{ color: 'var(--accent-secondary)', marginBottom: '0.2rem' }}>Mon Compte Éleveur</h2>
+              <p className="text-muted" style={{ fontSize: '0.85rem' }}>
+                Vos informations et paramètres de l'application.
+              </p>
             </div>
-          )}
-        </div>
-      </div>
+
+            <InstallAppBanner />
+
+            <div className="panel" style={{ padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1rem', borderBottom: '1px solid var(--panel-border)', paddingBottom: '1rem' }}>
+                <div style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '50%',
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  fontWeight: '800'
+                }}>
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'E'}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{user.name}</h3>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>📞 {user.phone}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.88rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Identifiant Unique</span>
+                  <strong style={{ color: 'var(--accent-secondary)' }}>{user.unique_id || 'Non assigné'}</strong>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Localisation enregistrée</span>
+                  <strong style={{ color: '#334155' }}>{user.location || 'Non renseignée'}</strong>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Type de compte</span>
+                  <span className="badge badge-success">Éleveur Partenaire</span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <a 
+                  href="https://wa.me/237699000000?text=Bonjour%20Agro-King,%20j'ai%20une%20question%20concernant%20mon%20élevage."
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="btn btn-outline btn-sm"
+                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: '#047857' }}
+                >
+                  <span>💬</span> Contacter l'Assistance WhatsApp
+                </a>
+
+                <button 
+                  onClick={handleLogout} 
+                  className="btn btn-outline btn-sm"
+                  style={{ color: '#dc2626', borderColor: '#fecaca' }}
+                >
+                  🚪 Déconnexion de mon compte
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* Modern Smartphone Bottom Navigation Bar */}
+      <nav className="mobile-bottom-nav">
+        <button 
+          onClick={() => { setActiveTab('order'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+          className={`nav-tab ${activeTab === 'order' ? 'active' : ''}`}
+        >
+          <span className="nav-icon">🐣</span>
+          <span className="nav-label">Commander</span>
+        </button>
+
+        <button 
+          onClick={() => { setActiveTab('orders'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+          className={`nav-tab ${activeTab === 'orders' ? 'active' : ''}`}
+        >
+          <span className="nav-icon" style={{ position: 'relative' }}>
+            📦
+            {pendingOrdersCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-8px',
+                background: '#e11d48',
+                color: '#fff',
+                borderRadius: '50%',
+                fontSize: '0.65rem',
+                width: '16px',
+                height: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '700'
+              }}>
+                {pendingOrdersCount}
+              </span>
+            )}
+          </span>
+          <span className="nav-label">Commandes</span>
+        </button>
+
+        <button 
+          onClick={() => { setActiveTab('cycles'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+          className={`nav-tab ${activeTab === 'cycles' ? 'active' : ''}`}
+        >
+          <span className="nav-icon" style={{ position: 'relative' }}>
+            📈
+            {activeCyclesCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-8px',
+                background: 'var(--accent-primary)',
+                color: '#fff',
+                borderRadius: '50%',
+                fontSize: '0.65rem',
+                width: '16px',
+                height: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '700'
+              }}>
+                {activeCyclesCount}
+              </span>
+            )}
+          </span>
+          <span className="nav-label">Élevage</span>
+        </button>
+
+        <button 
+          onClick={() => { setActiveTab('account'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+          className={`nav-tab ${activeTab === 'account' ? 'active' : ''}`}
+        >
+          <span className="nav-icon">👤</span>
+          <span className="nav-label">Compte</span>
+        </button>
+      </nav>
+
+      {/* Global Loaders */}
       {(loadingPayment || isPageLoading) && (
-        <GlobalLoader text={loadingPayment ? "Initialisation du paiement sécurisé..." : "Veuillez patienter..."} />
+        <GlobalLoader text={loadingPayment ? "Connexion sécurisée PayUnit..." : "Traitement en cours..."} />
       )}
+
     </div>
   );
 }

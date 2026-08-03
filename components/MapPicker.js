@@ -58,7 +58,6 @@ export default function MapPicker({ coordinates, onLocationSelect, onAddressReso
   const triggerReverseGeocoding = async (lat, lng) => {
     if (!onAddressResolve) return;
     try {
-      // Appel à l'API de géocodage inversé gratuite d'OpenStreetMap (Nominatim)
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=fr`);
       if (!res.ok) return;
       const data = await res.json();
@@ -76,7 +75,6 @@ export default function MapPicker({ coordinates, onLocationSelect, onAddressReso
       } else if (neighborhood) {
         resolved = neighborhood;
       } else if (data.display_name) {
-        // En dernier recours, on prend les deux premiers éléments de l'adresse brute
         resolved = data.display_name.split(',').slice(0, 2).join(', ').trim();
       }
       
@@ -100,7 +98,7 @@ export default function MapPicker({ coordinates, onLocationSelect, onAddressReso
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setPosition(coords);
         setMapCenter(coords);
-        setZoom(18); // Zoom max pour un calibrage précis sur la ferme
+        setZoom(18); // Zoom max pour calibrage précis sur la ferme
         onLocationSelect(coords);
         triggerReverseGeocoding(coords.lat, coords.lng);
         setLoading(false);
@@ -108,20 +106,18 @@ export default function MapPicker({ coordinates, onLocationSelect, onAddressReso
       (err) => {
         console.error('Geolocation error:', err);
         setLoading(false);
-        // On n'alerte pas en mode automatique pour ne pas perturber l'affichage initial
         if (!autoGPS) {
-          alert('Erreur: Impossible d\'obtenir votre position précise (vérifiez vos autorisations GPS).');
+          alert('Erreur: Impossible d\'obtenir votre position précise (vérifiez les autorisations GPS de votre smartphone).');
         }
       },
       {
-        enableHighAccuracy: true, // Haute précision GPS (exige le capteur GPS du téléphone)
-        timeout: 15000,           // 15 secondes d'attente max
-        maximumAge: 0             // Pas de cache pour avoir la position en temps réel
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
       }
     );
   };
 
-  // Lancer la géolocalisation dès le montage si autoGPS est activé et qu'il n'y a pas encore de coordonnées
   useEffect(() => {
     if (autoGPS && !coordinates) {
       handleGetLocation();
@@ -129,29 +125,25 @@ export default function MapPicker({ coordinates, onLocationSelect, onAddressReso
   }, [autoGPS]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
       <button 
         type="button" 
         className="btn btn-outline" 
         onClick={handleGetLocation}
         disabled={loading}
-        style={{ width: '100%', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.88rem', padding: '0.6rem 0.8rem' }}
       >
         {loading ? (
           <>
-            <span className="spinner" style={{ borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }}></span>
-            Capture de la position précise en cours...
+            <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid rgba(46,125,50,0.3)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }}></span>
+            Capture GPS en cours...
           </>
         ) : (
-          <>📍 Capturer ma position exacte (Haute Précision GPS)</>
+          <>📍 Localiser ma ferme (GPS Haute Précision)</>
         )}
       </button>
       
-      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, textAlign: 'left' }}>
-        Ou déplacez-vous sur la carte et cliquez pour ajuster précisément le repère :
-      </p>
-
-      <div style={{ height: '300px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--panel-border)' }}>
+      <div style={{ height: '210px', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--panel-border)', position: 'relative' }}>
         <MapContainer 
           center={mapCenter} 
           zoom={zoom} 
@@ -159,7 +151,7 @@ export default function MapPicker({ coordinates, onLocationSelect, onAddressReso
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution='&copy; OpenStreetMap'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <LocationMarker position={position} setPosition={(coords) => {
@@ -171,11 +163,14 @@ export default function MapPicker({ coordinates, onLocationSelect, onAddressReso
         </MapContainer>
       </div>
 
-      {position && (
-        <p style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', margin: 0, textAlign: 'left' }}>
-          ✓ Position capturée : {position.lat.toFixed(6)}, {position.lng.toFixed(6)}
-        </p>
-      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+        <span>Toucher la carte pour ajuster</span>
+        {position && (
+          <span style={{ color: 'var(--accent-primary)', fontWeight: '600' }}>
+            ✓ GPS: {position.lat.toFixed(4)}, {position.lng.toFixed(4)}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import GlobalLoader from '@/components/GlobalLoader';
+import InstallAppBanner from '@/components/InstallAppBanner';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
@@ -52,119 +53,223 @@ function AuthContent() {
       ? { ...formData, requiredRole: 'Farmer' }
       : formData;
 
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      if (!isLogin && data.user.role === 'Farmer') {
-        // Auto-add new location if it doesn't exist (machine learning pour les humains)
-        if (formData.location && !locations.some(l => l.name.toLowerCase() === formData.location.toLowerCase())) {
-          fetch('/api/locations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: formData.location })
-          }).catch(console.error); // Fire and forget
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (!isLogin && data.user.role === 'Farmer') {
+          if (formData.location && !locations.some(l => l.name.toLowerCase() === formData.location.toLowerCase())) {
+            fetch('/api/locations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: formData.location })
+            }).catch(console.error);
+          }
+          
+          setSignupSuccessData(data.user);
+        } else {
+          router.push('/farmer');
         }
-        
-        setSignupSuccessData(data.user);
-        setIsLoading(false);
       } else {
-        router.push('/farmer');
+        const data = await res.json();
+        alert(data.error || 'Échec de l\'authentification');
       }
-    } else {
+    } catch (err) {
+      console.error(err);
+      alert('Erreur réseau. Veuillez vérifier votre connexion.');
+    } finally {
       setIsLoading(false);
-      const data = await res.json();
-      alert(data.error || 'Échec de l\'authentification');
     }
   };
 
   if (signupSuccessData) {
     return (
-      <div style={{ maxWidth: '400px', margin: '4rem auto', textAlign: 'center', padding: '0 1rem' }}>
-        <img src="/logo.jpeg" alt="AGRO KING Logo" style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 1.5rem auto', display: 'block', border: '4px solid var(--accent-primary)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-        <h1 style={{ marginBottom: '0.5rem', color: 'var(--accent-secondary)' }}>Félicitations !</h1>
-        <div className="panel" style={{ padding: '2rem', marginTop: '2rem' }}>
-          <h3 style={{ color: 'var(--accent-primary)' }}>Compte créé avec succès</h3>
-          <p style={{ margin: '1rem 0' }}>Votre identifiant unique est :</p>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '2px dashed var(--accent-primary)', color: 'var(--accent-secondary)' }}>
-            {signupSuccessData.unique_id}
+      <div className="app-shell">
+        <main className="container" style={{ maxWidth: '440px' }}>
+          <div style={{ textAlign: 'center', marginTop: '1rem' }} className="animate-fade-in">
+            <img 
+              src="/logo.jpeg" 
+              alt="AGRO KING Logo" 
+              style={{ width: '76px', height: '76px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 1rem auto', display: 'block', border: '3px solid var(--accent-primary)', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
+            />
+            <h1 style={{ marginBottom: '0.25rem', color: 'var(--accent-secondary)' }}>Félicitations !</h1>
+            <p className="text-muted" style={{ fontSize: '0.9rem' }}>Votre compte éleveur est prêt.</p>
+            
+            <div className="panel" style={{ padding: '1.25rem', marginTop: '1.25rem', textAlign: 'center' }}>
+              <h3 style={{ color: 'var(--accent-primary)', fontSize: '1.1rem' }}>Compte créé avec succès</h3>
+              <p style={{ margin: '0.75rem 0 0.5rem 0', fontSize: '0.88rem', color: 'var(--text-muted)' }}>Votre identifiant unique éleveur est :</p>
+              <div style={{ fontSize: '1.4rem', fontWeight: '800', background: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '2px dashed var(--accent-primary)', color: 'var(--accent-secondary)', letterSpacing: '0.05em' }}>
+                {signupSuccessData.unique_id}
+              </div>
+              <p className="text-muted" style={{ margin: '0.75rem 0', fontSize: '0.8rem' }}>Conservez cet identifiant, il vous servira pour vos commandes et votre suivi.</p>
+              <button onClick={() => { setIsLoading(true); router.push('/farmer'); }} className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
+                Accéder à mon espace éleveur ➔
+              </button>
+            </div>
+
+            <InstallAppBanner />
+
+            {isLoading && <GlobalLoader text="Ouverture du tableau de bord..." />}
           </div>
-          <p className="text-muted" style={{ margin: '1rem 0', fontSize: '0.9rem' }}>Veuillez conserver cet identifiant, il vous servira de référence pour votre ferme.</p>
-          <button onClick={() => { setIsLoading(true); router.push('/farmer'); }} className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }}>Accéder à mon tableau de bord</button>
-        </div>
-        {isLoading && <GlobalLoader text="Redirection vers le tableau de bord..." />}
+        </main>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '400px', margin: '4rem auto', textAlign: 'center', padding: '0 1rem' }}>
-      <img src="/logo.jpeg" alt="AGRO KING Logo" style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 1.5rem auto', display: 'block', border: '4px solid var(--accent-primary)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-      <h1 style={{ marginBottom: '0.5rem', color: 'var(--accent-secondary)' }}>AGRO KING</h1>
-      <p className="text-muted" style={{ marginBottom: '1rem', fontWeight: '500', fontSize: '1.1rem' }}>
-        Recevez vos poussins et aliments directement à votre ferme, au bon moment.
-      </p>
+    <div className="app-shell">
+      <main className="container" style={{ maxWidth: '440px' }}>
+        <div style={{ textAlign: 'center', margin: '0.75rem 0 1rem 0' }} className="animate-fade-in">
+          <img 
+            src="/logo.jpeg" 
+            alt="AGRO KING Logo" 
+            style={{ width: '76px', height: '76px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 0.75rem auto', display: 'block', border: '3px solid var(--accent-primary)', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
+          />
+          <h1 style={{ marginBottom: '0.2rem', color: 'var(--accent-secondary)' }}>AGRO KING</h1>
+          <p className="text-muted" style={{ fontSize: '0.88rem', lineHeight: 1.3, maxWidth: '320px', margin: '0 auto' }}>
+            La solution complète pour vos poussins et aliments d'élevage.
+          </p>
+        </div>
 
-      <div style={{ background: '#ecfdf5', color: '#047857', padding: '0.8rem', borderRadius: '8px', marginBottom: '2rem', fontSize: '0.9rem', border: '1px dashed #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-        <span>🤝</span> Rejoignez plus de 500 éleveurs locaux qui nous font confiance.
-      </div>
-      
-      <div className="panel" style={{ padding: '2rem' }}>
-        <h3 style={{ marginBottom: '1.5rem' }}>{isLogin ? 'Connexion' : 'Créer mon compte'}</h3>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {!isLogin && (
-            <>
-              <input type="text" placeholder="Nom complet de l'éleveur" className="input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-              
+        <InstallAppBanner />
+
+        {/* Main Auth Card */}
+        <div className="panel" style={{ padding: '1.25rem' }}>
+          
+          {/* Segmented Switcher */}
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', marginBottom: '1.25rem' }}>
+            <button 
+              type="button" 
+              onClick={() => setIsLogin(true)}
+              style={{
+                flex: 1,
+                padding: '0.6rem 0',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: isLogin ? '700' : '500',
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                background: isLogin ? '#ffffff' : 'transparent',
+                color: isLogin ? 'var(--accent-secondary)' : '#64748b',
+                boxShadow: isLogin ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Se Connecter
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setIsLogin(false)}
+              style={{
+                flex: 1,
+                padding: '0.6rem 0',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: !isLogin ? '700' : '500',
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                background: !isLogin ? '#ffffff' : 'transparent',
+                color: !isLogin ? 'var(--accent-secondary)' : '#64748b',
+                boxShadow: !isLogin ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Créer un Compte
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {!isLogin && (
+              <>
+                <div>
+                  <label className="label">Nom complet de l'éleveur</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: Jean Dupont" 
+                    className="input" 
+                    required 
+                    value={formData.name} 
+                    onChange={e => setFormData({...formData, name: e.target.value})} 
+                  />
+                </div>
+                
+                <div>
+                  <label className="label">Ville ou Quartier</label>
+                  <input 
+                    type="text" 
+                    list="locations-list" 
+                    className="input" 
+                    placeholder="Ex: Yaoundé - Nkoabang" 
+                    required 
+                    value={formData.location}
+                    onChange={e => setFormData({...formData, location: e.target.value})} 
+                  />
+                  <datalist id="locations-list">
+                    {locations.map(loc => (
+                      <option key={loc._id} value={loc.name} />
+                    ))}
+                  </datalist>
+                </div>
+
+                <div>
+                  <label className="label">Position exacte de la ferme (GPS)</label>
+                  <MapPicker 
+                    coordinates={formData.coordinates} 
+                    onLocationSelect={(coords) => setFormData({...formData, coordinates: coords})} 
+                    onAddressResolve={(addr) => setFormData(prev => ({...prev, location: addr}))}
+                    autoGPS={true}
+                  />
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="label">{isLogin ? "Téléphone ou Identifiant AGRK" : "Numéro de Téléphone"}</label>
               <input 
                 type="text" 
-                list="locations-list" 
+                placeholder={isLogin ? "Ex: 699123456 ou AGRK-1234" : "Ex: 699123456"} 
                 className="input" 
-                placeholder="Ville ou Quartier (tapez ou choisissez)" 
                 required 
-                value={formData.location}
-                onChange={e => setFormData({...formData, location: e.target.value})} 
+                value={formData.phone} 
+                onChange={e => setFormData({...formData, phone: e.target.value})} 
               />
-              <datalist id="locations-list">
-                {locations.map(loc => (
-                  <option key={loc._id} value={loc.name} />
-                ))}
-              </datalist>
+            </div>
 
-              <div style={{ marginTop: '0.5rem' }}>
-                <MapPicker 
-                  coordinates={formData.coordinates} 
-                  onLocationSelect={(coords) => setFormData({...formData, coordinates: coords})} 
-                  onAddressResolve={(addr) => setFormData(prev => ({...prev, location: addr}))}
-                  autoGPS={true}
-                />
-              </div>
-            </>
-          )}
-          <input type="tel" placeholder={isLogin ? "Téléphone (ex: 699...)" : "Téléphone"} className="input" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-          <input type="password" placeholder="Mot de passe" className="input" required onChange={e => setFormData({...formData, password: e.target.value})} />
-          <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
-            {isLogin ? 'Se connecter' : 'Créer mon compte'}
-          </button>
-        </form>
-        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', alignItems: 'center' }}>
-          <button type="button" onClick={() => setIsLogin(!isLogin)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: '500' }}>
-            {isLogin ? 'Pas encore de compte ? Créer mon compte' : 'Déjà un compte ? Se connecter'}
-          </button>
+            <div>
+              <label className="label">Mot de passe</label>
+              <input 
+                type="password" 
+                placeholder="Votre mot de passe" 
+                className="input" 
+                required 
+                onChange={e => setFormData({...formData, password: e.target.value})} 
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
+              {isLogin ? 'Connexion à mon espace' : 'Valider et Créer mon Compte'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            🔒 Connexion sécurisée et données chiffrées.
+          </div>
         </div>
-      </div>
-      {isLoading && <GlobalLoader text={isLogin ? "Connexion en cours..." : "Création du compte..."} />}
+
+        {isLoading && <GlobalLoader text={isLogin ? "Connexion en cours..." : "Création du compte..."} />}
+      </main>
     </div>
   );
 }
 
 export default function AuthPage() {
   return (
-    <Suspense fallback={<div>Chargement...</div>}>
+    <Suspense fallback={<GlobalLoader text="Chargement..." />}>
       <AuthContent />
     </Suspense>
   );

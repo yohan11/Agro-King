@@ -2,8 +2,8 @@ import './globals.css';
 import GlobalClickLoader from './GlobalClickLoader';
 
 export const metadata = {
-  title: 'AGRO KING | App Éleveur',
-  description: 'Application mobile de commande et de suivi pour l\'élevage de volailles AgroKing.',
+  title: 'AGRO KING | Application Éleveur',
+  description: 'Application mobile de commande et de suivi pour l\'élevage de volailles Agro-King.',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: '/logo.jpeg',
@@ -13,7 +13,7 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'AgroKing',
+    title: 'AGRO KING',
   },
 };
 
@@ -54,11 +54,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <GlobalClickLoader />
-        <div className="app-shell">
-          <main className="container animate-slide-down">
-            {children}
-          </main>
-        </div>
+        {children}
       </body>
     </html>
   );
