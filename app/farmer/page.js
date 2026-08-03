@@ -815,20 +815,64 @@ export default function FarmerDashboard() {
               </p>
             </div>
 
-            {cycles.length === 0 ? (
-              <div className="panel" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📈</div>
-                <h3 style={{ color: '#475569', fontSize: '1rem' }}>Aucun cycle d'élevage actif</h3>
-                <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-                  Votre cycle s'active automatiquement dès la validation d'une commande de poussins.
-                </p>
-                <button onClick={() => setActiveTab('order')} className="btn btn-primary btn-sm">
-                  Commander des poussins
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {cycles.map(c => {
+            {(() => {
+              const pendingChickOrders = (orders || []).filter(o => {
+                const s = (o.status || '').toLowerCase();
+                const ps = (o.paymentStatus || '').toUpperCase();
+                const isPaid = ps === 'PAID' || ps === 'SUCCESS' || o.paid === true || s === 'confirmée' || s === 'confirmee' || s === 'payée' || s === 'payee';
+                const isDelivered = s === 'livre' || s === 'livrée' || s === 'livree';
+                return isPaid && !isDelivered && ((o.chicks && o.chicks > 0) || (o.chicks_count && o.chicks_count > 0));
+              });
+
+              if (cycles.length === 0 && pendingChickOrders.length === 0) {
+                return (
+                  <div className="panel" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📈</div>
+                    <h3 style={{ color: '#475569', fontSize: '1rem' }}>Aucun cycle d'élevage actif</h3>
+                    <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                      Votre cycle démarre automatiquement dès la livraison de vos poussins à votre ferme.
+                    </p>
+                    <button onClick={() => setActiveTab('order')} className="btn btn-primary btn-sm">
+                      Commander des poussins
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {/* Pending Deliveries Info Cards */}
+                  {pendingChickOrders.map(po => (
+                    <div 
+                      key={`pending-${po.id || po._id}`} 
+                      className="panel" 
+                      style={{ margin: 0, padding: '1.15rem', background: '#fffbeb', border: '1.5px solid #fef3c7', borderLeft: '4px solid #f59e0b' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                        <strong style={{ color: '#92400e', fontSize: '0.98rem' }}>
+                          🚚 Poussins en cours de livraison
+                        </strong>
+                        <span className="badge badge-warning" style={{ fontSize: '0.72rem' }}>
+                          Livraison en attente
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '0.84rem', color: '#78350f', lineHeight: 1.5, marginBottom: '0.5rem' }}>
+                        <div>📦 <strong>{po.pack_type || `${po.chicks} Poussins`}</strong></div>
+                        <div>📍 Lieu : <strong>{po.delivery_location}</strong></div>
+                        {po.delivery_date && (
+                          <div>📅 Prévue le : <strong>{new Date(po.delivery_date).toLocaleDateString('fr-FR')}</strong></div>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: '0.78rem', color: '#b45309', background: 'rgba(254, 243, 199, 0.8)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px dashed #fcd34d' }}>
+                        ⏳ <strong>Note :</strong> Votre cycle d'élevage (Jour 1) démarrera dès que l'équipe AGRO KING aura livré les poussins à votre ferme.
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Active Delivered Cycles */}
+                  {cycles.map(c => {
                   const isExpanded = expandedCycleId === (c.id || c._id);
                   const initialChicks = c.chicks || 100;
                   const liveBirds = c.live_birds !== undefined ? c.live_birds : initialChicks;
@@ -995,7 +1039,8 @@ export default function FarmerDashboard() {
                   );
                 })}
               </div>
-            )}
+            );
+          })()}
           </div>
         )}
 

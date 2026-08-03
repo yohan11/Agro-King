@@ -31,7 +31,7 @@ export async function POST(request) {
       }
     }
 
-    // 1. Update Order to PAID & Confirmée
+    // 1. Update Order to PAID & Confirmée (En attente de livraison)
     const updatedOrder = await db.collection("orders").findOneAndUpdate(
       orderQuery,
       {
@@ -61,45 +61,11 @@ export async function POST(request) {
       );
     }
 
-    // 3. Create cycle if it's a chicks order
-    if (orderDoc && !orderDoc.is_aliments_seuls && orderDoc.chicks > 0) {
-      const orderIdStr = orderDoc._id ? orderDoc._id.toString() : orderId;
-      const existingCycle = await db.collection("cycles").findOne({ 
-        $or: [
-          { order_id: orderIdStr },
-          { user_id: orderDoc.user_id, status: "En cours" }
-        ]
-      });
-
-      if (!existingCycle) {
-        let startDate = new Date().toISOString();
-        if (orderDoc.delivery_date) {
-          const parsed = new Date(orderDoc.delivery_date);
-          if (!isNaN(parsed.getTime())) {
-            startDate = parsed.toISOString();
-          }
-        }
-
-        await db.collection("cycles").insertOne({
-          user_id: orderDoc.user_id,
-          farmer_phone: orderDoc.farmer_phone,
-          farmer_name: orderDoc.farmer_name,
-          order_id: orderIdStr,
-          chicks: orderDoc.chicks || 100,
-          start_date: startDate,
-          is_reform: !!orderDoc.is_reform,
-          mortality_count: 0,
-          status: "En cours",
-          created_at: new Date().toISOString()
-        });
-      }
-    }
-
-    // 4. Send Admin Notification
+    // 3. Send Admin Notification
     if (orderDoc) {
       try {
         const orderTitle = '💰 Paiement Confirmé & Reçu !';
-        const orderBody = `Commande de ${orderDoc.farmer_name} (${(orderDoc.amount || 0).toLocaleString('fr-FR')} FCFA) payée avec succès !`;
+        const orderBody = `Commande de ${orderDoc.farmer_name} (${(orderDoc.amount || 0).toLocaleString('fr-FR')} FCFA) payée avec succès ! Prête pour livraison.`;
         sendAdminPushNotification(orderTitle, orderBody, 'https://agroking-admin.vercel.app/dashboard').catch(console.error);
       } catch (e) {
         console.error("Push admin confirm error:", e);

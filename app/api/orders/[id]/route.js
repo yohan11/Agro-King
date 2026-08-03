@@ -48,13 +48,15 @@ export async function PUT(req, { params }) {
     
     if (!currentOrder) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
-    // Update the order status
-    const updatedOrder = await db.update('orders', orderId, { status });
+    const statusLower = (status || '').toLowerCase();
+    const isDelivered = statusLower === 'livre' || statusLower === 'livrée' || statusLower === 'livree';
 
-    // If order is newly confirmed, deduct stock and create cycle if needed
-    if (currentOrder.status === 'En attente' && status === 'Confirmée') {
-      const chicksCount = Number(currentOrder.chicks);
-      if (chicksCount > 0) {
+    // Le cycle démarre UNIQUEMENT si la commande est livrée
+    if (isDelivered) {
+      const chicksCount = Number(currentOrder.chicks_count || currentOrder.chicks || 0);
+      const isAlimentsSeuls = currentOrder.is_aliments_seuls || (currentOrder.pack_type && currentOrder.pack_type.toLowerCase().includes('aliments seuls'));
+
+      if (!isAlimentsSeuls && chicksCount > 0) {
         // Create a cycle if one doesn't exist
         const cycles = await db.getTable('cycles');
         const existingCycle = cycles.find(c => c.order_id?.toString() === orderId);
@@ -62,9 +64,13 @@ export async function PUT(req, { params }) {
         if (!existingCycle) {
           await db.insert('cycles', {
             user_id: currentOrder.user_id,
+            farmer_phone: currentOrder.farmer_phone,
+            farmer_name: currentOrder.farmer_name,
             order_id: orderId,
             chicks: chicksCount,
             pack_id: currentOrder.pack_type || chicksCount,
+            is_reform: !!currentOrder.is_reform,
+            status: 'En cours',
             start_date: new Date().toISOString()
           });
         }
