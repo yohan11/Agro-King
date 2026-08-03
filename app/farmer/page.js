@@ -394,6 +394,45 @@ export default function FarmerDashboard() {
         </button>
       </header>
 
+      {/* Modern Top Segmented Tabs Navigation Bar */}
+      <nav className="top-tabs-wrapper">
+        <div className="top-tabs-nav">
+          <button 
+            onClick={() => setActiveTab('order')} 
+            className={`top-tab-btn ${activeTab === 'order' ? 'active' : ''}`}
+          >
+            <span className="tab-icon">🐣</span>
+            <span className="tab-label">Commander</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('orders')} 
+            className={`top-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+          >
+            <span className="tab-icon">📦</span>
+            <span className="tab-label">Commandes</span>
+            {pendingOrdersCount > 0 && <span className="top-tab-badge">{pendingOrdersCount}</span>}
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('cycles')} 
+            className={`top-tab-btn ${activeTab === 'cycles' ? 'active' : ''}`}
+          >
+            <span className="tab-icon">📈</span>
+            <span className="tab-label">Élevage</span>
+            {activeCyclesCount > 0 && <span className="top-tab-badge">{activeCyclesCount}</span>}
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('account')} 
+            className={`top-tab-btn ${activeTab === 'account' ? 'active' : ''}`}
+          >
+            <span className="tab-icon">👤</span>
+            <span className="tab-label">Profil</span>
+          </button>
+        </div>
+      </nav>
+
       {/* Main Content Area */}
       <main className="container">
         
@@ -1035,47 +1074,6 @@ export default function FarmerDashboard() {
         )}
 
       </main>
-
-      {/* Modern Bottom Navigation Bar */}
-      <nav className="mobile-bottom-nav">
-        <button 
-          onClick={() => setActiveTab('order')} 
-          className={`nav-item ${activeTab === 'order' ? 'active' : ''}`}
-        >
-          <span className="nav-icon">🐣</span>
-          <span className="nav-label">Commander</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('orders')} 
-          className={`nav-item ${activeTab === 'orders' ? 'active' : ''}`}
-        >
-          <span className="nav-icon">
-            📦
-            {pendingOrdersCount > 0 && <span className="nav-badge">{pendingOrdersCount}</span>}
-          </span>
-          <span className="nav-label">Commandes</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('cycles')} 
-          className={`nav-item ${activeTab === 'cycles' ? 'active' : ''}`}
-        >
-          <span className="nav-icon">
-            📈
-            {activeCyclesCount > 0 && <span className="nav-badge">{activeCyclesCount}</span>}
-          </span>
-          <span className="nav-label">Élevage</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('account')} 
-          className={`nav-item ${activeTab === 'account' ? 'active' : ''}`}
-        >
-          <span className="nav-icon">👤</span>
-          <span className="nav-label">Compte</span>
-        </button>
-      </nav>
 
       {isPageLoading && <GlobalLoader text="Veuillez patienter..." />}
     </div>

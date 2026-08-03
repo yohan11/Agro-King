@@ -1,5 +1,5 @@
 'use client';
-import { Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -7,6 +7,22 @@ function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const transactionId = searchParams.get('transaction_id');
   const orderId = searchParams.get('order_id');
+  const [confirmed, setConfirmed] = useState(false);
+
+  useEffect(() => {
+    if (orderId || transactionId) {
+      fetch('/api/payment/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, transactionId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setConfirmed(true);
+      })
+      .catch(console.error);
+    }
+  }, [orderId, transactionId]);
 
   const shortId = orderId ? orderId.substring(orderId.length - 6).toUpperCase() : (transactionId ? transactionId.substring(transactionId.length - 6).toUpperCase() : 'INCONNU');
   const displayId = `AK-${new Date().getFullYear()}-${shortId}`;
@@ -23,9 +39,9 @@ function PaymentSuccessContent() {
           
           <div className="panel" style={{ padding: '1.5rem 1.25rem', background: '#ffffff', borderRadius: '16px', border: '2px solid #10b981' }}>
             <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✅</div>
-            <h1 style={{ color: '#065f46', fontSize: '1.4rem', marginBottom: '0.35rem' }}>Paiement Reçu !</h1>
+            <h1 style={{ color: '#065f46', fontSize: '1.4rem', marginBottom: '0.35rem' }}>Paiement Confirmé !</h1>
             <p style={{ fontSize: '0.88rem', color: '#047857', marginBottom: '1.25rem', lineHeight: 1.4 }}>
-              Merci de votre confiance. Votre commande est confirmée et en cours de préparation.
+              Merci de votre confiance. Votre commande est payée et enregistrée avec succès.
             </p>
 
             <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px dashed #cbd5e1', marginBottom: '1.25rem' }}>
@@ -36,10 +52,10 @@ function PaymentSuccessContent() {
             </div>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '1.5rem', lineHeight: 1.4 }}>
-              Un reçu a été généré et est disponible dans votre espace éleveur.
+              Votre cycle d'élevage est activé et votre reçu est disponible.
             </p>
 
-            <Link href="/farmer" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+            <Link href="/farmer" className="btn btn-primary" style={{ textDecoration: 'none', width: '100%' }}>
               Accéder à mes Commandes ➔
             </Link>
           </div>

@@ -69,124 +69,89 @@ h4 { font-size: 0.95rem; }
   width: 100%;
   max-width: 680px;
   margin: 0 auto;
-  padding: 0.75rem 1rem 95px 1rem; /* 95px bottom padding for the mobile bottom nav */
+  padding: 0.75rem 1rem 2.5rem 1rem;
 }
 
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
-.flex-wrap { flex-wrap: wrap; }
-.gap-1 { gap: 0.35rem; }
-.gap-2 { gap: 0.6rem; }
-.gap-3 { gap: 0.85rem; }
-.gap-4 { gap: 1.15rem; }
-
-.grid { display: grid; }
-.grid-cols-1 { grid-template-columns: 1fr; }
-.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
-.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
-
-/* Panels & Cards */
-.panel {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  padding: 1.15rem;
-  box-shadow: var(--shadow-soft);
-  margin-bottom: 1rem;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-/* Native Mobile Header */
-.mobile-app-header {
+/* Premium Top Segmented Tabs Navigation */
+.top-tabs-wrapper {
   position: sticky;
-  top: 0;
-  z-index: 50;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  top: 57px;
+  z-index: 45;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--panel-border);
-  padding: 0.75rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
-/* Mobile Bottom Navigation Bar */
-.mobile-bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 68px;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 0.5rem;
-  padding-bottom: env(safe-area-inset-bottom);
-  z-index: 100;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+.top-tabs-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
 }
 
-.nav-tab {
+.top-tab-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  height: 100%;
+  padding: 7px 2px;
   border: none;
   background: transparent;
+  border-radius: 10px;
   color: #64748b;
   cursor: pointer;
-  padding: 4px 0;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  user-select: none;
   touch-action: manipulation;
 }
 
-.nav-tab .nav-icon {
-  font-size: 1.35rem;
+.top-tab-btn .tab-icon {
+  font-size: 1.25rem;
   line-height: 1;
-  margin-bottom: 3px;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-bottom: 2px;
+  transition: transform 0.2s ease;
 }
 
-.nav-tab .nav-label {
-  font-size: 0.72rem;
+.top-tab-btn .tab-label {
+  font-size: 0.74rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
-.nav-tab.active {
-  color: var(--accent-primary);
+.top-tab-btn.active {
+  background: #ffffff;
+  color: var(--accent-secondary);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.09), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.nav-tab.active .nav-icon {
-  transform: scale(1.15);
+.top-tab-btn.active .tab-icon {
+  transform: scale(1.12);
 }
 
-.nav-tab.active .nav-label {
-  font-weight: 700;
+.top-tab-btn.active .tab-label {
+  font-weight: 800;
   color: var(--accent-secondary);
 }
 
-.nav-tab.active::after {
-  content: '';
+.top-tab-badge {
   position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 3px;
+  top: 2px;
+  right: 6px;
   background: var(--accent-primary);
-  border-radius: 0 0 4px 4px;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.4);
 }
 
 /* Buttons */
