@@ -19,6 +19,7 @@ export default function FarmerDashboard() {
   // Order flow state
   const [selectedPack, setSelectedPack] = useState(null);
   const [customChicks, setCustomChicks] = useState('');
+  const [includeReformOption, setIncludeReformOption] = useState(false);
   const [feedBags, setFeedBags] = useState({ demarrage: 0, croissance: 0, finition: 0 });
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
@@ -29,6 +30,10 @@ export default function FarmerDashboard() {
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [expandedCycleId, setExpandedCycleId] = useState(null);
 
+  // Mortality declaration state
+  const [editingMortalityCycleId, setEditingMortalityCycleId] = useState(null);
+  const [mortalityInput, setMortalityInput] = useState('');
+
   const todayStr = new Date().toISOString().split('T')[0];
 
   const packs = [
@@ -36,42 +41,59 @@ export default function FarmerDashboard() {
       id: "100",
       chicks: 100,
       name: "Pack 100 poussins",
-      price: "150 000 FCFA",
-      badge: "Recommandé",
+      price: "270 000 FCFA",
+      rawPrice: 270000,
+      badge: "Formule Complète",
       details: [
-        "100 poussins d'un jour vaccinés",
-        "1 sac aliment démarrage (50kg)",
-        "2 sacs aliment croissance 1",
-        "2 sacs aliment croissance 2",
-        "5 sacs aliment finition",
-        "Livraison progressive selon vos stades"
+        "🐣 100 poussins d'un jour vaccinés",
+        "🥣 10 sacs d'aliments 50kg au total :",
+        "   • 1 sac Démarrage (J1 à J14)",
+        "   • 4 sacs Croissance (J15 à J28)",
+        "   • 5 sacs Finition (J29 à J45)",
+        "🚚 Livraisons échelonnées incluses",
+        "📈 Suivi de croissance & rappels automatiques"
       ]
     },
     {
       id: "200",
       chicks: 200,
       name: "Pack 200 poussins",
-      price: "300 000 FCFA",
-      badge: "Populaire",
+      price: "540 000 FCFA",
+      rawPrice: 540000,
+      badge: "Recommandé Pro",
       details: [
-        "200 poussins d'un jour vaccinés",
-        "2 sacs aliment démarrage",
-        "4 sacs aliment croissance 1",
-        "4 sacs aliment croissance 2",
-        "10 sacs aliment finition",
-        "Livraison progressive selon vos stades"
+        "🐣 200 poussins d'un jour vaccinés",
+        "🥣 20 sacs d'aliments 50kg au total :",
+        "   • 2 sacs Démarrage (J1 à J14)",
+        "   • 8 sacs Croissance (J15 à J28)",
+        "   • 10 sacs Finition (J29 à J45)",
+        "🚚 Livraisons échelonnées incluses",
+        "📈 Suivi de croissance & rappels automatiques"
+      ]
+    },
+    {
+      id: "reform",
+      name: "Pack Extension Réforme",
+      price: "97 500 FCFA",
+      rawPrice: 97500,
+      badge: "Poulets Lourds 60J",
+      details: [
+        "🏆 Pour vente à ~6 500 FCFA l'unité (au lieu de 3 500 F)",
+        "🥣 4 sacs de Finition supplémentaires (50kg)",
+        "📅 Prolongation du cycle de 45 à 60 jours",
+        "💰 Maximise le bénéfice net de votre élevage"
       ]
     },
     {
       id: "custom",
       name: "Pack Sur Mesure",
-      price: "Calcul automatique",
+      price: "2 700 FCFA / poussin",
       badge: "Flexibilité",
       details: [
-        "Choisissez votre quantité exacte de poussins.",
-        "Calcul automatique du plan d'alimentation.",
-        "10 sacs d'aliments par tranche de 100 poussins.",
-        "Suivi et livraisons échelonnées."
+        "🐣 Quantité libre de poussins (ex: 150, 300, 500...)",
+        "🥣 Ratio exact : 10 sacs d'aliments pour 100 poussins",
+        "🚚 Livraisons échelonnées à votre rythme",
+        "💰 Calcul automatique du montant et du plan d'alimentation"
       ]
     },
     {
@@ -80,10 +102,10 @@ export default function FarmerDashboard() {
       price: "Au choix par sac",
       badge: "Alimentation",
       details: [
-        "Démarrage : 22 500 FCFA / sac",
-        "Croissance : 21 500 FCFA / sac",
-        "Finition : 19 500 FCFA / sac",
-        "Idéal si vos poussins sont déjà en ferme."
+        "🥣 Démarrage (50kg) : 22 500 FCFA / sac",
+        "🥣 Croissance (50kg) : 21 500 FCFA / sac",
+        "🥣 Finition (50kg) : 19 500 FCFA / sac",
+        "🚚 Idéal pour réapprovisionner une bande existante"
       ]
     }
   ];
@@ -138,6 +160,30 @@ export default function FarmerDashboard() {
     return () => clearInterval(interval);
   }, [router]);
 
+  // Total order amount calculation
+  const computeOrderAmount = () => {
+    if (!selectedPack) return 0;
+    if (selectedPack.id === '100') {
+      return 270000 + (includeReformOption ? 97500 : 0);
+    }
+    if (selectedPack.id === '200') {
+      return 540000 + (includeReformOption ? 195000 : 0);
+    }
+    if (selectedPack.id === 'reform') {
+      return 97500;
+    }
+    if (selectedPack.id === 'aliments') {
+      return (feedBags.demarrage * 22500) + (feedBags.croissance * 21500) + (feedBags.finition * 19500);
+    }
+    if (selectedPack.id === 'custom') {
+      const cnt = Number(customChicks) || 0;
+      const base = cnt * 2700;
+      const reformAdd = includeReformOption ? (cnt * 975) : 0;
+      return base + reformAdd;
+    }
+    return 0;
+  };
+
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     if (!selectedPack) return;
@@ -149,7 +195,6 @@ export default function FarmerDashboard() {
       return alert('Veuillez sélectionner au moins 1 sac d\'aliment.');
     }
 
-    // Auto-add new location if it doesn't exist
     if (deliveryLocation && !locations.some(l => l.name.toLowerCase() === deliveryLocation.toLowerCase())) {
       fetch('/api/locations', {
         method: 'POST',
@@ -165,33 +210,44 @@ export default function FarmerDashboard() {
     let pref = nextDeliveryPref === 'date' ? `Date demandée: ${nextDeliveryDate}` : 'Rappels automatiques activés';
     setLoadingPayment(true);
 
-    let amount = 0;
+    const amount = computeOrderAmount();
     let orderDetails = {
       delivery_location: deliveryLocation,
       delivery_date: deliveryDate,
       next_bags_delivery_preference: pref,
       coordinates,
-      is_aliments_seuls: selectedPack.id === 'aliments'
+      is_aliments_seuls: selectedPack.id === 'aliments',
+      is_reform: selectedPack.id === 'reform' || includeReformOption
     };
 
     if (selectedPack.id === '100') {
-      amount = 150000;
       orderDetails.chicks = 100;
-      orderDetails.pack_type = selectedPack.name;
+      orderDetails.pack_type = includeReformOption ? "Pack 100 poussins (+ Extension Réforme 60J)" : "Pack 100 poussins";
+      orderDetails.feed_breakdown = { demarrage: 1, croissance: 4, finition: includeReformOption ? 9 : 5 };
     } else if (selectedPack.id === '200') {
-      amount = 300000;
       orderDetails.chicks = 200;
-      orderDetails.pack_type = selectedPack.name;
+      orderDetails.pack_type = includeReformOption ? "Pack 200 poussins (+ Extension Réforme 60J)" : "Pack 200 poussins";
+      orderDetails.feed_breakdown = { demarrage: 2, croissance: 8, finition: includeReformOption ? 18 : 10 };
+    } else if (selectedPack.id === 'reform') {
+      orderDetails.chicks = 0;
+      orderDetails.bags = 4;
+      orderDetails.pack_type = "Pack Extension Réforme (4 sacs finition)";
+      orderDetails.feed_breakdown = { demarrage: 0, croissance: 0, finition: 4 };
     } else if (selectedPack.id === 'aliments') {
-      amount = (feedBags.demarrage * 22500) + (feedBags.croissance * 21500) + (feedBags.finition * 19500);
       orderDetails.chicks = 0;
       orderDetails.bags = feedBags.demarrage + feedBags.croissance + feedBags.finition;
       orderDetails.feed_breakdown = feedBags;
       orderDetails.pack_type = 'Aliments Seuls';
     } else {
-      amount = Number(customChicks) * 1500;
-      orderDetails.chicks = Number(customChicks);
-      orderDetails.pack_type = 'Pack Sur Mesure';
+      const cnt = Number(customChicks);
+      const mult = cnt / 100;
+      orderDetails.chicks = cnt;
+      orderDetails.pack_type = includeReformOption ? `Pack Sur Mesure (${cnt} poussins + Réforme 60J)` : `Pack Sur Mesure (${cnt} poussins)`;
+      orderDetails.feed_breakdown = {
+        demarrage: Math.round(1 * mult),
+        croissance: Math.round(4 * mult),
+        finition: Math.round((includeReformOption ? 9 : 5) * mult)
+      };
     }
 
     try {
@@ -235,14 +291,64 @@ export default function FarmerDashboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         chicks: 0,
-        pack_type: `Réapprovisionnement Aliment (${sacsReq} sacs)`,
+        pack_type: `Livraison Échelonnée (${sacsReq} sacs)`,
         delivery_location: user.location || "À la ferme (Lieu habituel)",
       })
     });
     await fetchOrders();
     setIsPageLoading(false);
     setActiveTab('orders');
-    alert('Demande de réapprovisionnement transmise ! Vous pouvez la suivre dans l\'onglet Mes Commandes.');
+    alert('Demande de livraison transmise ! Vous pouvez la suivre dans l\'onglet Mes Commandes.');
+  };
+
+  const handleActivateReformOnCycle = async (cycle) => {
+    const mult = (cycle.chicks || 100) / 100;
+    const sacs = 4 * mult;
+    const price = 97500 * mult;
+
+    const confirmer = window.confirm(
+      `Voulez-vous activer l'Extension Réforme pour vos ${cycle.chicks} volailles ?\n\n` +
+      `• Prolongation du cycle de 45 à 60 jours\n` +
+      `• Commande de ${sacs} sacs de Finition supplémentaires (${price.toLocaleString('fr-FR')} FCFA)\n` +
+      `• Vente estimée à ~6 500 FCFA / poulet lourd\n\n` +
+      `Cliquez sur OK pour commander le réapprovisionnement.`
+    );
+    if (!confirmer) return;
+
+    setSelectedPack(packs.find(p => p.id === 'reform'));
+    setActiveTab('order');
+  };
+
+  const handleSaveMortality = async (cycleId) => {
+    const count = Number(mortalityInput);
+    if (isNaN(count) || count < 0) {
+      return alert('Veuillez entrer un nombre valide de pertes.');
+    }
+
+    setIsPageLoading(true);
+    try {
+      const res = await fetch('/api/cycles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cycleId,
+          mortality_count: count
+        })
+      });
+
+      if (res.ok) {
+        await fetchCycles();
+        setEditingMortalityCycleId(null);
+        setMortalityInput('');
+      } else {
+        alert('Erreur lors de l\'enregistrement de la mortalité.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erreur réseau.');
+    } finally {
+      setIsPageLoading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -254,7 +360,7 @@ export default function FarmerDashboard() {
   if (!user) return <GlobalLoader text="Chargement de votre espace..." />;
 
   const pendingOrdersCount = orders.filter(o => !['livré', 'livrée', 'livree', 'annulé', 'annulée', 'annulee'].includes((o.status || '').toLowerCase())).length;
-  const activeCyclesCount = cycles.filter(c => c.current_stage !== 'Cycle Terminé').length;
+  const activeCyclesCount = cycles.filter(c => !c.current_stage?.includes('Terminé')).length;
 
   return (
     <div className="app-shell">
@@ -297,9 +403,9 @@ export default function FarmerDashboard() {
             <InstallAppBanner />
             
             <div style={{ marginBottom: '1rem' }}>
-              <h2 style={{ color: 'var(--accent-secondary)', marginBottom: '0.2rem' }}>Commander Poussins & Aliments</h2>
+              <h2 style={{ color: 'var(--accent-secondary)', marginBottom: '0.2rem' }}>Formules & Commandes</h2>
               <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-                Sélectionnez votre formule pour lancer votre élevage.
+                Poussins d'un jour vaccinés + Aliments complets + Livraisons échelonnées.
               </p>
             </div>
 
@@ -323,7 +429,7 @@ export default function FarmerDashboard() {
                     </ul>
 
                     <button className="btn btn-primary btn-sm" style={{ width: '100%', fontSize: '0.88rem' }}>
-                      Choisir ce pack ➔
+                      Sélectionner ➔
                     </button>
                   </div>
                 ))}
@@ -344,7 +450,17 @@ export default function FarmerDashboard() {
                 {showPayment ? (
                   <div style={{ background: '#eff6ff', padding: '1.2rem', borderRadius: '12px', border: '2px solid #3b82f6' }}>
                     <h3 style={{ color: '#1e3a8a', marginBottom: '0.5rem', fontSize: '1.05rem' }}>Paiement Sécurisé</h3>
-                    <p style={{ color: '#1e40af', fontSize: '0.85rem', marginBottom: '1rem', lineHeight: 1.4 }}>
+                    <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '8px', border: '1px solid #bfdbfe', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', marginBottom: '0.3rem' }}>
+                        <span>Montant à régler :</span>
+                        <strong style={{ fontSize: '1.15rem', color: '#1d4ed8' }}>{computeOrderAmount().toLocaleString('fr-FR')} FCFA</strong>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                        Formule : {selectedPack.name} {includeReformOption ? '(avec Option Réforme 60J)' : ''}
+                      </div>
+                    </div>
+
+                    <p style={{ color: '#1e40af', fontSize: '0.82rem', marginBottom: '1rem', lineHeight: 1.4 }}>
                       Vous allez être redirigé vers le portail <strong>PayUnit</strong> pour régler par <strong>Orange Money, MTN Mobile Money</strong> ou Carte Bancaire.
                     </p>
                     
@@ -371,21 +487,30 @@ export default function FarmerDashboard() {
                   </div>
                 ) : (
                   <form onSubmit={handleOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    
+                    {/* Custom Chicks Input */}
                     {selectedPack.id === 'custom' && (
                       <div>
                         <label className="label">Nombre de poussins souhaités</label>
                         <input 
                           type="number" 
-                          min="1" 
+                          min="10" 
+                          step="10"
                           required 
                           className="input"
                           value={customChicks}
                           onChange={e => setCustomChicks(e.target.value)}
-                          placeholder="Ex: 150"
+                          placeholder="Ex: 150, 300, 500..."
                         />
+                        {customChicks > 0 && (
+                          <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', color: '#047857', background: '#ecfdf5', padding: '0.5rem', borderRadius: '6px' }}>
+                            🥣 <strong>Plan d'aliment inclus :</strong> {Math.round(1 * (customChicks / 100))} sac(s) Démarrage, {Math.round(4 * (customChicks / 100))} sacs Croissance, {Math.round(5 * (customChicks / 100))} sacs Finition (Total : {Math.round(10 * (customChicks / 100))} sacs).
+                          </div>
+                        )}
                       </div>
                     )}
 
+                    {/* Aliments Seuls Input */}
                     {selectedPack.id === 'aliments' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <label className="label">Quantités d'aliments (Sacs de 50kg)</label>
@@ -428,12 +553,38 @@ export default function FarmerDashboard() {
                           />
                           <span style={{ fontSize: '0.82rem', color: '#334155' }}>Finition (19 500 F)</span>
                         </div>
-
-                        <div style={{ fontWeight: '700', color: 'var(--accent-primary)', textAlign: 'right', fontSize: '0.95rem' }}>
-                          Total : {((feedBags.demarrage * 22500) + (feedBags.croissance * 21500) + (feedBags.finition * 19500)).toLocaleString('fr-FR')} FCFA
-                        </div>
                       </div>
                     )}
+
+                    {/* Optional Extension Reform Checkbox */}
+                    {(selectedPack.id === '100' || selectedPack.id === '200' || selectedPack.id === 'custom') && (
+                      <div style={{ background: '#fdf4ff', padding: '0.85rem', borderRadius: '10px', border: '1px solid #f0abfc' }}>
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={includeReformOption} 
+                            onChange={e => setIncludeReformOption(e.target.checked)}
+                            style={{ width: '18px', height: '18px', marginTop: '0.2rem' }}
+                          />
+                          <div>
+                            <strong style={{ color: '#86198f', fontSize: '0.88rem', display: 'block' }}>
+                              🏆 Option Extension Réforme (Poulets Lourds 60 jours)
+                            </strong>
+                            <span style={{ color: '#701a75', fontSize: '0.78rem', lineHeight: 1.3, display: 'block' }}>
+                              Ajoute 4 sacs de finition supplémentaires par tranche de 100 poussins (+{selectedPack.id === '200' ? '195 000' : '97 500'} FCFA) pour prolonger jusqu'à 60 jours et vendre à ~6 500 FCFA l'unité.
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* Order Total Highlight */}
+                    <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--panel-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '600', color: 'var(--text-muted)', fontSize: '0.9rem' }}>TOTAL DE LA COMMANDE :</span>
+                      <strong style={{ fontSize: '1.25rem', color: 'var(--accent-primary)' }}>
+                        {computeOrderAmount().toLocaleString('fr-FR')} FCFA
+                      </strong>
+                    </div>
 
                     <div>
                       <label className="label">Date de livraison souhaitée (Poussins & 1ers sacs)</label>
@@ -489,7 +640,7 @@ export default function FarmerDashboard() {
                         type="text" 
                         list="locations-list" 
                         className="input" 
-                        placeholder="Ex: Douala - Logbessou" 
+                        placeholder="Ex: Yaoundé - Nkoabang" 
                         required 
                         value={deliveryLocation}
                         onChange={e => setDeliveryLocation(e.target.value)} 
@@ -525,7 +676,7 @@ export default function FarmerDashboard() {
             <div style={{ marginBottom: '1rem' }}>
               <h2 style={{ color: 'var(--accent-secondary)', marginBottom: '0.2rem' }}>Mes Commandes</h2>
               <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-                Historique et suivi de vos approvisionnements.
+                Historique, paiements et suivi des livraisons.
               </p>
             </div>
 
@@ -574,6 +725,7 @@ export default function FarmerDashboard() {
 
                       <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                         {o.chicks > 0 && <div>🐣 <strong>{o.chicks}</strong> poussins</div>}
+                        {o.amount && <div>💰 Montant : <strong>{o.amount.toLocaleString('fr-FR')} FCFA</strong></div>}
                         <div>📍 {o.delivery_location}</div>
                         {o.delivery_date && <div>📅 Prévue le : {new Date(o.delivery_date).toLocaleDateString('fr-FR')}</div>}
                       </div>
@@ -595,13 +747,13 @@ export default function FarmerDashboard() {
           </div>
         )}
 
-        {/* TAB 3: MON ELEVAGE (CYCLES) */}
+        {/* TAB 3: MON ELEVAGE (CYCLES & RENTABILITÉ) */}
         {activeTab === 'cycles' && (
           <div className="animate-fade-in">
             <div style={{ marginBottom: '1rem' }}>
               <h2 style={{ color: 'var(--accent-secondary)', marginBottom: '0.2rem' }}>Mon Élevage & Suivi</h2>
               <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-                Suivez la croissance de vos poussins et anticipez les aliments.
+                Suivi de croissance, mortalité déclarée et calcul de rentabilité.
               </p>
             </div>
 
@@ -620,6 +772,17 @@ export default function FarmerDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {cycles.map(c => {
                   const isExpanded = expandedCycleId === (c.id || c._id);
+                  const initialChicks = c.chicks || 100;
+                  const liveBirds = c.live_birds !== undefined ? c.live_birds : initialChicks;
+                  const mortality = c.mortality_count || 0;
+                  const isReform = !!c.is_reform;
+                  
+                  // Financial Simulation
+                  const estimatedBirdPrice = isReform ? 6500 : 3500;
+                  const projectedRevenue = liveBirds * estimatedBirdPrice;
+                  const estimatedCost = (initialChicks / 100) * (isReform ? (270000 + 97500) : 270000);
+                  const estimatedProfit = projectedRevenue - estimatedCost;
+
                   return (
                     <div key={c.id || c._id} className="panel" style={{ margin: 0, padding: '1.1rem' }}>
                       <div 
@@ -628,14 +791,16 @@ export default function FarmerDashboard() {
                       >
                         <div>
                           <strong style={{ fontSize: '1.05rem', color: 'var(--accent-secondary)', display: 'block' }}>
-                            {c.chicks} Poussins
+                            {c.chicks} Poussins {isReform ? '⭐ (Réforme 60J)' : ''}
                           </strong>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pack {c.pack_id}</span>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                            {liveBirds} volailles vivantes ({c.survival_rate || 100}% survie)
+                          </span>
                         </div>
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span className="badge badge-success" style={{ fontSize: '0.82rem' }}>
-                            Jour {c.current_day}
+                            Jour {c.current_day} {isReform ? '/ 60' : '/ 45'}
                           </span>
                           <span style={{ fontSize: '1.2rem', color: 'var(--accent-primary)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
                             ▾
@@ -645,42 +810,103 @@ export default function FarmerDashboard() {
 
                       {isExpanded && (
                         <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid var(--panel-border)' }} className="animate-fade-in">
+                          
+                          {/* Growth Stage Boxes */}
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.85rem' }}>
                             <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', borderLeft: '3px solid var(--accent-primary)' }}>
                               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Étape Actuelle</div>
-                              <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'block' }}>{c.current_stage}</strong>
+                              <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block', marginTop: '0.2rem' }}>
+                                {c.current_stage}
+                              </strong>
                               {c.sacs_needed > 0 && (
                                 <div style={{ fontSize: '0.78rem', color: 'var(--accent-secondary)', marginTop: '0.2rem' }}>
-                                  {c.sacs_needed} sacs requis
+                                  {c.sacs_needed} sac(s) pour ce stade
                                 </div>
                               )}
                             </div>
 
                             <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b' }}>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Guide de Croissance</div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Calendrier Officiel</div>
                               <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '0.2rem', lineHeight: 1.3 }}>
-                                • J1-14: Démarrage<br />
-                                • J15-28: Croissance<br />
-                                • J29-45: Finition
+                                • J1-14: Démarrage (1 sac)<br />
+                                • J15-28: Croissance (4 sacs)<br />
+                                • J29-45: Finition (5 sacs)<br />
+                                • J46-60: Réforme (+4 sacs)
                               </div>
                             </div>
                           </div>
 
-                          {/* Quick Restock Action */}
+                          {/* Live Mortality & Profit Simulator Box */}
+                          <div style={{ background: '#f0fdf4', padding: '0.85rem', borderRadius: '10px', border: '1px solid #bbf7d0', marginBottom: '0.85rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#166534' }}>
+                                📊 Suivi Mortalité & Rentabilité Éleveur
+                              </span>
+                              <button 
+                                onClick={() => { setEditingMortalityCycleId(c.id || c._id); setMortalityInput(mortality.toString()); }}
+                                className="btn btn-outline btn-sm"
+                                style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}
+                              >
+                                Déclarer mortalité
+                              </button>
+                            </div>
+
+                            {editingMortalityCycleId === (c.id || c._id) ? (
+                              <div style={{ background: '#ffffff', padding: '0.65rem', borderRadius: '6px', border: '1px solid #86efac', marginBottom: '0.5rem' }}>
+                                <label style={{ fontSize: '0.75rem', color: '#334155', display: 'block', marginBottom: '0.3rem' }}>
+                                  Nombre de pertes constatées à la ferme :
+                                </label>
+                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    max={initialChicks} 
+                                    className="input" 
+                                    style={{ width: '80px', padding: '0.4rem' }} 
+                                    value={mortalityInput} 
+                                    onChange={e => setMortalityInput(e.target.value)} 
+                                  />
+                                  <button onClick={() => handleSaveMortality(c.id || c._id)} className="btn btn-primary btn-sm" style={{ fontSize: '0.75rem' }}>
+                                    Enregistrer
+                                  </button>
+                                  <button onClick={() => setEditingMortalityCycleId(null)} className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem' }}>
+                                    Annuler
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', fontSize: '0.78rem' }}>
+                              <div>
+                                <span style={{ color: '#64748b' }}>Pertes déclarées :</span> <strong>{mortality} poulet(s)</strong>
+                              </div>
+                              <div>
+                                <span style={{ color: '#64748b' }}>Volailles vendables :</span> <strong style={{ color: '#15803d' }}>{liveBirds}</strong>
+                              </div>
+                              <div>
+                                <span style={{ color: '#64748b' }}>Prix unitaire estimé :</span> <strong>{estimatedBirdPrice.toLocaleString('fr-FR')} F</strong>
+                              </div>
+                              <div>
+                                <span style={{ color: '#64748b' }}>Bénéfice net estimé :</span> <strong style={{ color: estimatedProfit >= 0 ? '#15803d' : '#dc2626' }}>+{estimatedProfit.toLocaleString('fr-FR')} F</strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Restock Action & Reform CTA */}
                           {c.reminder_active && c.next_stage_sacs > 0 ? (
                             <div style={{ background: '#ecfdf5', border: '1px solid #10b981', padding: '0.85rem', borderRadius: '10px', marginTop: '0.5rem' }}>
                               <strong style={{ color: '#065f46', fontSize: '0.85rem', display: 'block', marginBottom: '0.3rem' }}>
-                                🔔 Fin d'étape imminente
+                                🔔 Étape suivante imminente
                               </strong>
                               <p style={{ fontSize: '0.78rem', color: '#047857', marginBottom: '0.6rem' }}>
-                                Demandez vos <strong>{c.next_stage_sacs} sacs</strong> d'aliment pour la prochaine étape de croissance.
+                                Demandez vos <strong>{c.next_stage_sacs} sacs</strong> d'aliment pour la prochaine étape.
                               </p>
                               <button onClick={() => handleRestockRequest(c)} className="btn btn-primary btn-sm" style={{ width: '100%' }}>
                                 ✅ Confirmer la livraison des sacs
                               </button>
                             </div>
                           ) : (
-                            c.current_stage !== 'Cycle Terminé' && (
+                            !c.current_stage?.includes('Terminé') && (
                               <button 
                                 onClick={() => handleRestockRequest(c)} 
                                 className="btn btn-outline btn-sm" 
@@ -689,6 +915,21 @@ export default function FarmerDashboard() {
                                 🚚 Demander les sacs de l'étape suivante en avance
                               </button>
                             )
+                          )}
+
+                          {/* Extension Reform Button if eligible */}
+                          {!isReform && c.current_day >= 30 && (
+                            <div style={{ background: '#fdf4ff', border: '1px solid #f0abfc', padding: '0.85rem', borderRadius: '10px', marginTop: '0.65rem' }}>
+                              <strong style={{ color: '#86198f', fontSize: '0.85rem', display: 'block', marginBottom: '0.3rem' }}>
+                                🏆 Prolonger en Réforme (Poulets Lourds 60J)
+                              </strong>
+                              <p style={{ fontSize: '0.78rem', color: '#701a75', marginBottom: '0.5rem', lineHeight: 1.3 }}>
+                                Vendez vos poulets plus lourds à <strong>~6 500 FCFA</strong> au lieu de 3 500 FCFA.
+                              </p>
+                              <button onClick={() => handleActivateReformOnCycle(c)} className="btn btn-primary btn-sm" style={{ width: '100%', background: '#a21caf', borderColor: '#a21caf' }}>
+                                ⭐ Activer l'Extension Réforme (+4 sacs)
+                              </button>
+                            </div>
                           )}
                         </div>
                       )}
@@ -706,7 +947,7 @@ export default function FarmerDashboard() {
             <div style={{ marginBottom: '1rem' }}>
               <h2 style={{ color: 'var(--accent-secondary)', marginBottom: '0.2rem' }}>Mon Compte Éleveur</h2>
               <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-                Vos informations et paramètres de l'application.
+                Vos informations et assistance AgroKing.
               </p>
             </div>
 
@@ -753,21 +994,21 @@ export default function FarmerDashboard() {
 
               <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 <a 
-                  href="https://wa.me/237699000000?text=Bonjour%20Agro-King,%20j'ai%20une%20question%20concernant%20mon%20élevage."
+                  href="https://wa.me/237699000000" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="btn btn-outline btn-sm"
-                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: '#047857' }}
+                  className="btn btn-outline" 
+                  style={{ width: '100%', textAlign: 'center', textDecoration: 'none', color: '#16a34a', borderColor: '#86efac' }}
                 >
-                  <span>💬</span> Contacter l'Assistance WhatsApp
+                  💬 Assistance WhatsApp Directe
                 </a>
 
                 <button 
                   onClick={handleLogout} 
-                  className="btn btn-outline btn-sm"
-                  style={{ color: '#dc2626', borderColor: '#fecaca' }}
+                  className="btn btn-outline" 
+                  style={{ width: '100%', color: '#ef4444', borderColor: '#fca5a5' }}
                 >
-                  🚪 Déconnexion de mon compte
+                  🚪 Se Déconnecter
                 </button>
               </div>
             </div>
@@ -776,88 +1017,48 @@ export default function FarmerDashboard() {
 
       </main>
 
-      {/* Modern Smartphone Bottom Navigation Bar */}
+      {/* Modern Bottom Navigation Bar */}
       <nav className="mobile-bottom-nav">
         <button 
-          onClick={() => { setActiveTab('order'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-          className={`nav-tab ${activeTab === 'order' ? 'active' : ''}`}
+          onClick={() => setActiveTab('order')} 
+          className={`nav-item ${activeTab === 'order' ? 'active' : ''}`}
         >
           <span className="nav-icon">🐣</span>
           <span className="nav-label">Commander</span>
         </button>
 
         <button 
-          onClick={() => { setActiveTab('orders'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-          className={`nav-tab ${activeTab === 'orders' ? 'active' : ''}`}
+          onClick={() => setActiveTab('orders')} 
+          className={`nav-item ${activeTab === 'orders' ? 'active' : ''}`}
         >
-          <span className="nav-icon" style={{ position: 'relative' }}>
+          <span className="nav-icon">
             📦
-            {pendingOrdersCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-4px',
-                right: '-8px',
-                background: '#e11d48',
-                color: '#fff',
-                borderRadius: '50%',
-                fontSize: '0.65rem',
-                width: '16px',
-                height: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '700'
-              }}>
-                {pendingOrdersCount}
-              </span>
-            )}
+            {pendingOrdersCount > 0 && <span className="nav-badge">{pendingOrdersCount}</span>}
           </span>
           <span className="nav-label">Commandes</span>
         </button>
 
         <button 
-          onClick={() => { setActiveTab('cycles'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-          className={`nav-tab ${activeTab === 'cycles' ? 'active' : ''}`}
+          onClick={() => setActiveTab('cycles')} 
+          className={`nav-item ${activeTab === 'cycles' ? 'active' : ''}`}
         >
-          <span className="nav-icon" style={{ position: 'relative' }}>
+          <span className="nav-icon">
             📈
-            {activeCyclesCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-4px',
-                right: '-8px',
-                background: 'var(--accent-primary)',
-                color: '#fff',
-                borderRadius: '50%',
-                fontSize: '0.65rem',
-                width: '16px',
-                height: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '700'
-              }}>
-                {activeCyclesCount}
-              </span>
-            )}
+            {activeCyclesCount > 0 && <span className="nav-badge">{activeCyclesCount}</span>}
           </span>
           <span className="nav-label">Élevage</span>
         </button>
 
         <button 
-          onClick={() => { setActiveTab('account'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-          className={`nav-tab ${activeTab === 'account' ? 'active' : ''}`}
+          onClick={() => setActiveTab('account')} 
+          className={`nav-item ${activeTab === 'account' ? 'active' : ''}`}
         >
           <span className="nav-icon">👤</span>
           <span className="nav-label">Compte</span>
         </button>
       </nav>
 
-      {/* Global Loaders */}
-      {(loadingPayment || isPageLoading) && (
-        <GlobalLoader text={loadingPayment ? "Connexion sécurisée PayUnit..." : "Traitement en cours..."} />
-      )}
-
+      {isPageLoading && <GlobalLoader text="Veuillez patienter..." />}
     </div>
   );
 }

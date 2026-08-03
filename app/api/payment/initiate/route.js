@@ -5,6 +5,70 @@ import db from "@/lib/db";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
+function calculateFinancialBreakdown(packType, amount, chicksCount, feedBreakdown, isReform = false) {
+    let costPartner = 0;
+    let costDelivery = 0;
+    let costTotal = 0;
+    let margin = 0;
+    let feedRequirements = { demarrage: 0, croissance: 0, finition: 0 };
+
+    const chicks = Number(chicksCount) || 0;
+    const pType = (packType || '').toLowerCase();
+
+    if (pType.includes('100')) {
+        costPartner = 243200;
+        costDelivery = 15000;
+        costTotal = 258200;
+        margin = amount - costTotal;
+        feedRequirements = { demarrage: 1, croissance: 4, finition: 5 };
+    } else if (pType.includes('200')) {
+        costPartner = 486400;
+        costDelivery = 30000;
+        costTotal = 516400;
+        margin = amount - costTotal;
+        feedRequirements = { demarrage: 2, croissance: 8, finition: 10 };
+    } else if (pType.includes('reform') || pType.includes('réforme') || isReform) {
+        const mult = chicks > 0 ? chicks / 100 : 1;
+        costPartner = 74100 * mult;
+        costDelivery = 0;
+        costTotal = 78000 * mult;
+        margin = amount - costTotal;
+        feedRequirements = { demarrage: 0, croissance: 0, finition: 4 * mult };
+    } else if (pType.includes('aliments')) {
+        const dem = feedBreakdown?.demarrage || 0;
+        const croiss = feedBreakdown?.croissance || 0;
+        const fin = feedBreakdown?.finition || 0;
+        costPartner = (dem * 21375) + (croiss * 20425) + (fin * 18525);
+        costDelivery = 0;
+        costTotal = costPartner;
+        margin = amount - costTotal;
+        feedRequirements = { demarrage: dem, croissance: croiss, finition: fin };
+    } else if (chicks > 0) {
+        const mult = chicks / 100;
+        costPartner = Math.round(243200 * mult);
+        costDelivery = Math.round(15000 * mult);
+        costTotal = costPartner + costDelivery;
+        margin = amount - costTotal;
+        feedRequirements = { 
+            demarrage: Math.round(1 * mult), 
+            croissance: Math.round(4 * mult), 
+            finition: Math.round(5 * mult) 
+        };
+    } else {
+        costPartner = Math.round(amount * 0.95);
+        costTotal = costPartner;
+        margin = amount - costTotal;
+    }
+
+    return {
+        cost_partner: costPartner,
+        cost_delivery: costDelivery,
+        cost_total_agroking: costTotal,
+        margin_agroking: margin,
+        feed_requirements: feedRequirements
+    };
+}
+
 export async function POST(request) {
     try {
         const body = await request.json();
@@ -20,7 +84,7 @@ export async function POST(request) {
         const client = await clientPromise;
         const database = client.db("agroking");
 
-        // Fetch farmer info for complete details
+        // Fetch farmer info
         let farmer = null;
         try {
             farmer = await database.collection("users").findOne({ _id: new ObjectId(farmerId) });
@@ -31,7 +95,15 @@ export async function POST(request) {
         const farmerName = farmer?.name || 'Éleveur';
         const farmerPhone = farmer?.phone || 'Non spécifié';
 
-        // 1. Create order record IMMEDIATELY in "orders" collection
+        const financial = calculateFinancialBreakdown(
+            packType, 
+            amount, 
+            orderDetails?.chicks || 0, 
+            orderDetails?.feed_breakdown,
+            orderDetails?.is_reform
+        );
+
+        // 1. Create order record in "orders" collection
         const newOrderObj = {
             user_id: farmerId,
             farmer_id: farmerId,
@@ -47,9 +119,14 @@ export async function POST(request) {
             next_bags_delivery_preference: orderDetails?.next_bags_delivery_preference || null,
             coordinates: orderDetails?.coordinates || null,
             is_aliments_seuls: !!orderDetails?.is_aliments_seuls,
+            is_reform: !!orderDetails?.is_reform,
             status: "En attente",
             paymentStatus: "PENDING",
             amount: amount,
+            cost_partner: financial.cost_partner,
+            cost_delivery: financial.cost_delivery,
+            margin_agroking: financial.margin_agroking,
+            feed_requirements: financial.feed_requirements,
             created_at: new Date().toISOString()
         };
 
@@ -58,7 +135,7 @@ export async function POST(request) {
         const shortId = createdOrderId.slice(-6).toUpperCase();
         const receiptNumber = `REC-${new Date().getFullYear()}-${shortId}`;
 
-        // 2. SAVE PAYMENT RECEIPT DIRECTLY IN MONGODB "receipts" COLLECTION
+        // 2. SAVE PAYMENT RECEIPT IN "receipts" COLLECTION
         await database.collection("receipts").insertOne({
             receipt_number: receiptNumber,
             order_id: createdOrderId,
@@ -73,6 +150,7 @@ export async function POST(request) {
             amount: amount,
             payment_method: "PayUnit / Mobile Money",
             status: "Payé & Confirmé",
+            feed_requirements: financial.feed_requirements,
             created_at: new Date().toISOString()
         });
 
@@ -110,16 +188,18 @@ export async function POST(request) {
             orderId: createdOrderId,
             orderDetails,
             amount,
+            cost_partner: financial.cost_partner,
+            margin_agroking: financial.margin_agroking,
             status: "PENDING",
             provider: null,
             createdAt: new Date(),
         });
 
-        // 5. Trigger Web Push & WhatsApp notification to Admin immediately!
+        // 5. Trigger Web Push notification to Admin
         try {
             const { sendAdminPushNotification } = require('@/lib/push');
             const orderTitle = '🚨 Nouvelle Commande !';
-            const orderBody = `${farmerName} (${farmerPhone}) a passé une commande : ${packType} (${amount} FCFA) à ${orderDetails?.delivery_location || 'sa ferme'}. Reçu ${receiptNumber} enregistré.`;
+            const orderBody = `${farmerName} (${farmerPhone}) a commandé : ${packType} (${amount.toLocaleString('fr-FR')} FCFA) à ${orderDetails?.delivery_location || 'sa ferme'}. Reçu ${receiptNumber} enregistré.`;
             sendAdminPushNotification(orderTitle, orderBody, 'https://agroking-admin.vercel.app/dashboard').catch(console.error);
         } catch (e) {
             console.error("Push error:", e);
