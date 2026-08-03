@@ -14,16 +14,28 @@ export default function manifest() {
     prefer_related_applications: false,
     icons: [
       {
-        src: '/logo.jpeg',
+        src: '/icon-192x192.png',
         sizes: '192x192',
-        type: 'image/jpeg',
-        purpose: 'any maskable'
+        type: 'image/png',
+        purpose: 'any'
       },
       {
-        src: '/logo.jpeg',
+        src: '/icon-512x512.png',
         sizes: '512x512',
-        type: 'image/jpeg',
-        purpose: 'any maskable'
+        type: 'image/png',
+        purpose: 'any'
+      },
+      {
+        src: '/icon-maskable-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable'
+      },
+      {
+        src: '/icon-maskable-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable'
       }
     ],
     shortcuts: [
@@ -32,14 +44,14 @@ export default function manifest() {
         short_name: 'Commander',
         description: 'Commander des poussins ou aliments',
         url: '/farmer',
-        icons: [{ src: '/logo.jpeg', sizes: '192x192', type: 'image/jpeg' }]
+        icons: [{ src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }]
       },
       {
         name: 'Mon Élevage',
         short_name: 'Suivi',
         description: 'Suivre mon cycle d\'élevage',
         url: '/farmer',
-        icons: [{ src: '/logo.jpeg', sizes: '192x192', type: 'image/jpeg' }]
+        icons: [{ src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }]
       }
     ]
   };
