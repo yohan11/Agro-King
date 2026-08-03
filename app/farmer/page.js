@@ -680,70 +680,89 @@ export default function FarmerDashboard() {
               </p>
             </div>
 
-            {orders.length === 0 ? (
-              <div className="panel" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📦</div>
-                <h3 style={{ color: '#475569', fontSize: '1rem' }}>Aucune commande pour le moment</h3>
-                <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-                  Vos commandes de poussins et aliments apparaîtront ici.
-                </p>
-                <button onClick={() => setActiveTab('order')} className="btn btn-primary btn-sm">
-                  Passer ma première commande
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {orders.map(o => {
-                  const s = (o.status || '').toLowerCase();
-                  const isDelivered = s === 'livre' || s === 'livrée' || s === 'livree';
-                  const isPaid = s === 'payée' || s === 'payee' || s === 'confirmée' || s === 'confirmee' || o.paymentStatus === 'PAID' || o.paid === true;
-                  const isCancelled = s === 'annule' || s === 'annulée' || s === 'annulee';
+            {(() => {
+              const paidOrders = (orders || []).filter(o => {
+                const s = (o.status || '').toLowerCase();
+                const ps = (o.paymentStatus || '').toUpperCase();
+                return (
+                  ps === 'PAID' || 
+                  ps === 'SUCCESS' ||
+                  o.paid === true || 
+                  s === 'payée' || 
+                  s === 'payee' || 
+                  s === 'confirmée' || 
+                  s === 'confirmee' || 
+                  s === 'livre' || 
+                  s === 'livrée' || 
+                  s === 'livree'
+                );
+              });
 
-                  let badgeClass = 'badge-warning';
-                  let badgeText = o.status || 'En attente';
-                  if (isDelivered) {
-                    badgeClass = 'badge-success';
-                    badgeText = 'Livrée ✅';
-                  } else if (isPaid) {
-                    badgeClass = 'badge-primary';
-                    badgeText = 'Payée 💳';
-                  } else if (isCancelled) {
-                    badgeClass = 'badge-outline';
-                    badgeText = 'Annulée ❌';
-                  }
+              if (paidOrders.length === 0) {
+                return (
+                  <div className="panel" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📦</div>
+                    <h3 style={{ color: '#475569', fontSize: '1rem' }}>Aucune commande payée pour le moment</h3>
+                    <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                      Vos commandes de poussins et aliments apparaîtront ici dès confirmation de votre paiement.
+                    </p>
+                    <button onClick={() => setActiveTab('order')} className="btn btn-primary btn-sm">
+                      Passer une commande
+                    </button>
+                  </div>
+                );
+              }
 
-                  return (
-                    <div key={o.id || o._id} className="panel" style={{ margin: 0, padding: '1rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <strong style={{ fontSize: '0.98rem', color: 'var(--accent-secondary)' }}>
-                          {o.pack_type || `${o.chicks} Poussins`}
-                        </strong>
-                        <span className={`badge ${badgeClass}`}>
-                          {badgeText}
-                        </span>
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {paidOrders.map(o => {
+                    const s = (o.status || '').toLowerCase();
+                    const isDelivered = s === 'livre' || s === 'livrée' || s === 'livree';
+                    const isCancelled = s === 'annule' || s === 'annulée' || s === 'annulee';
+
+                    let badgeClass = 'badge-primary';
+                    let badgeText = 'Payée 💳';
+                    if (isDelivered) {
+                      badgeClass = 'badge-success';
+                      badgeText = 'Livrée ✅';
+                    } else if (isCancelled) {
+                      badgeClass = 'badge-outline';
+                      badgeText = 'Annulée ❌';
+                    }
+
+                    return (
+                      <div key={o.id || o._id} className="panel" style={{ margin: 0, padding: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <strong style={{ fontSize: '0.98rem', color: 'var(--accent-secondary)' }}>
+                            {o.pack_type || `${o.chicks} Poussins`}
+                          </strong>
+                          <span className={`badge ${badgeClass}`}>
+                            {badgeText}
+                          </span>
+                        </div>
+
+                        <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          {o.chicks > 0 && <div>🐣 <strong>{o.chicks}</strong> poussins</div>}
+                          {o.amount && <div>💰 Montant payé : <strong>{o.amount.toLocaleString('fr-FR')} FCFA</strong></div>}
+                          <div>📍 {o.delivery_location}</div>
+                          {o.delivery_date && <div>📅 Prévue le : {new Date(o.delivery_date).toLocaleDateString('fr-FR')}</div>}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem', borderTop: '1px solid var(--panel-border)', paddingTop: '0.5rem' }}>
+                          <button 
+                            onClick={() => router.push(`/receipt/${o.id || o._id}`)} 
+                            className="btn btn-outline btn-sm"
+                            style={{ fontSize: '0.78rem' }}
+                          >
+                            📄 Voir le Reçu
+                          </button>
+                        </div>
                       </div>
-
-                      <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        {o.chicks > 0 && <div>🐣 <strong>{o.chicks}</strong> poussins</div>}
-                        {o.amount && <div>💰 Montant : <strong>{o.amount.toLocaleString('fr-FR')} FCFA</strong></div>}
-                        <div>📍 {o.delivery_location}</div>
-                        {o.delivery_date && <div>📅 Prévue le : {new Date(o.delivery_date).toLocaleDateString('fr-FR')}</div>}
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem', borderTop: '1px solid var(--panel-border)', paddingTop: '0.5rem' }}>
-                        <button 
-                          onClick={() => router.push(`/receipt/${o.id || o._id}`)} 
-                          className="btn btn-outline btn-sm"
-                          style={{ fontSize: '0.78rem' }}
-                        >
-                          📄 Voir le Reçu
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 

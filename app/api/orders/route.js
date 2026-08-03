@@ -18,6 +18,24 @@ async function getSessionUser() {
   }
 }
 
+export function isPaidOrder(o) {
+  if (!o) return false;
+  const s = (o.status || '').toLowerCase();
+  const ps = (o.paymentStatus || '').toUpperCase();
+  return (
+    ps === 'PAID' || 
+    ps === 'SUCCESS' ||
+    o.paid === true || 
+    s === 'payée' || 
+    s === 'payee' || 
+    s === 'confirmée' || 
+    s === 'confirmee' || 
+    s === 'livre' || 
+    s === 'livrée' || 
+    s === 'livree'
+  );
+}
+
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,22 +44,27 @@ export async function GET() {
   const users = await db.getTable('users');
 
   let filteredOrders = orders;
-  // If Farmer, show only their orders (match by ID, phone, or unique_id)
+  
+  // If Farmer, show only their PAID orders (filter out unpaid / pending payment attempts)
   if (user.role === 'Farmer') {
     const userIdStr = (user.id || user._id)?.toString();
     const userPhoneStr = user.phone?.toString()?.replace(/\s+/g, '');
     const userUniqueIdStr = user.unique_id?.toString()?.toUpperCase();
 
     filteredOrders = orders.filter(o => {
+      // 1. Must match farmer identity
       const oUserId = (o.user_id || o.farmer_id)?.toString();
       const oPhone = (o.farmer_phone || o.phone)?.toString()?.replace(/\s+/g, '');
       const oUniqueId = o.unique_id?.toString()?.toUpperCase();
 
-      return (
+      const isFarmerMatch = (
         (userIdStr && oUserId === userIdStr) ||
         (userPhoneStr && oPhone && oPhone === userPhoneStr) ||
         (userUniqueIdStr && oUniqueId && oUniqueId === userUniqueIdStr)
       );
+
+      // 2. Tant que le client ne paie pas, la commande NE doit PAS s'afficher
+      return isFarmerMatch && isPaidOrder(o);
     });
   }
 
@@ -63,7 +86,7 @@ export async function GET() {
       phone: o.farmer_phone || (owner ? owner.phone : 'Non spécifié'),
       chicks_count: o.chicks_count !== undefined ? o.chicks_count : (o.chicks || 0),
       chicks: o.chicks !== undefined ? o.chicks : (o.chicks_count || 0),
-      status: o.status || 'En attente'
+      status: o.status || 'Confirmée'
     };
   });
 
@@ -93,20 +116,6 @@ export async function POST(req) {
     const farmerName = fullUser?.name || user.name || 'Éleveur';
     const farmerPhone = fullUser?.phone || user.phone || 'Non disponible';
 
-    // Prevent duplicate orders
-    const allOrders = await db.getTable('orders');
-    const recentDuplicate = allOrders.find(o => 
-      (o.user_id === user.id || o.farmer_phone === farmerPhone) && 
-      o.chicks === chicksCount && 
-      o.pack_type === (data.pack_type || 'Sur mesure') &&
-      o.created_at && 
-      (new Date() - new Date(o.created_at)) < 60000
-    );
-
-    if (recentDuplicate) {
-      return NextResponse.json({ error: 'Commande en double détectée. Veuillez patienter.' }, { status: 409 });
-    }
-
     const newOrder = await db.insert('orders', {
       user_id: user.id,
       farmer_id: user.id,
@@ -120,7 +129,9 @@ export async function POST(req) {
       delivery_date: data.delivery_date || null,
       next_bags_delivery_preference: data.next_bags_delivery_preference || null,
       coordinates: data.coordinates || null,
-      status: 'En attente',
+      status: 'Confirmée',
+      paymentStatus: 'PAID',
+      paid: true,
       is_aliments_seuls: isAlimentsSeuls,
       created_at: new Date().toISOString()
     });
@@ -140,8 +151,8 @@ export async function POST(req) {
     // Trigger automatic push & WhatsApp notification to Admin
     try {
       const { sendAdminPushNotification } = require('@/lib/push');
-      const orderTitle = '🚨 Nouvelle Commande !';
-      const orderBody = `L'éleveur ${farmerName} (${farmerPhone}) a passé une commande (${data.pack_type || 'Pack'}) à ${data.delivery_location || 'sa ferme'}.`;
+      const orderTitle = '🚨 Nouvelle Commande Confirmée !';
+      const orderBody = `L'éleveur ${farmerName} (${farmerPhone}) a validé une commande (${data.pack_type || 'Pack'}) à ${data.delivery_location || 'sa ferme'}.`;
       await sendAdminPushNotification(orderTitle, orderBody, 'https://agroking-admin.vercel.app/dashboard');
     } catch (pushErr) {
       console.error("Push notification error on order creation:", pushErr);
