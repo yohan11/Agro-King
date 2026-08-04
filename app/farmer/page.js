@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import GlobalLoader from '@/components/GlobalLoader';
 import InstallAppBanner from '@/components/InstallAppBanner';
+import EntrepreneurSavingsTab from '@/components/EntrepreneurSavingsTab';
+import ConsumerSavingsTab from '@/components/ConsumerSavingsTab';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
@@ -408,6 +410,22 @@ export default function FarmerDashboard() {
           </button>
 
           <button 
+            onClick={() => setActiveTab('savings')} 
+            className={`top-tab-btn ${activeTab === 'savings' ? 'active' : ''}`}
+          >
+            <span className="tab-icon">💰</span>
+            <span className="tab-label">Caisse 75%</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('consumer')} 
+            className={`top-tab-btn ${activeTab === 'consumer' ? 'active' : ''}`}
+          >
+            <span className="tab-icon">🛒</span>
+            <span className="tab-label">Épargne/Marché</span>
+          </button>
+
+          <button 
             onClick={() => setActiveTab('orders')} 
             className={`top-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
           >
@@ -709,6 +727,16 @@ export default function FarmerDashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {/* TAB: CAISSE VIRTUELLE 75% (MODULE ENTREPRENEURS) */}
+        {activeTab === 'savings' && (
+          <EntrepreneurSavingsTab user={user} />
+        )}
+
+        {/* TAB: ÉPARGNE & MARCHÉ (MODULE CONSOMMATEURS) */}
+        {activeTab === 'consumer' && (
+          <ConsumerSavingsTab user={user} />
         )}
 
         {/* TAB 2: MES COMMANDES */}

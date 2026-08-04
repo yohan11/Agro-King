@@ -123,16 +123,24 @@ h4 { font-size: 0.95rem; }
 }
 
 .top-tabs-nav {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 5px;
+  display: flex;
+  overflow-x: auto;
+  gap: 4px;
   background: #f1f5f9;
   padding: 4px;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.top-tabs-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .top-tab-btn {
+  flex: 1 0 auto;
+  min-width: 68px;
   display: flex;
   flex-direction: column;
   align-items: center;
