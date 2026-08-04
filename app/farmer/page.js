@@ -367,14 +367,19 @@ export default function FarmerDashboard() {
       
       {/* Top Mobile Bar */}
       <header className="mobile-app-header">
+        {/* Extreme Left: Logout Button */}
+        <button 
+          onClick={handleLogout} 
+          className="logout-header-btn"
+          title="Se déconnecter"
+        >
+          <span>🚪</span> Déconnexion
+        </button>
+
+        {/* Right: Farmer Identity & Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <img 
-            src="/logo.jpeg" 
-            alt="Logo" 
-            style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-primary)' }} 
-          />
-          <div>
-            <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--accent-secondary)', lineHeight: 1.2 }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: '700', fontSize: '0.92rem', color: 'var(--accent-secondary)', lineHeight: 1.2 }}>
               {user.name}
             </div>
             {user.unique_id && (
@@ -383,15 +388,12 @@ export default function FarmerDashboard() {
               </span>
             )}
           </div>
+          <img 
+            src="/logo.jpeg" 
+            alt="Logo" 
+            style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-primary)' }} 
+          />
         </div>
-
-        <button 
-          onClick={handleLogout} 
-          className="btn btn-outline btn-sm"
-          style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem' }}
-        >
-          <span>🚪</span> Déconnexion
-        </button>
       </header>
 
       {/* Modern Top Segmented Tabs Navigation Bar */}

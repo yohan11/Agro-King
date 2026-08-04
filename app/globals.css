@@ -72,10 +72,47 @@ h4 { font-size: 0.95rem; }
   padding: 0.75rem 1rem 2.5rem 1rem;
 }
 
+/* Mobile App Header */
+.mobile-app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  background: #ffffff;
+  border-bottom: 1px solid var(--panel-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.logout-header-btn {
+  width: auto !important;
+  min-height: 34px !important;
+  padding: 0.35rem 0.75rem !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+  background: #f8fafc !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.logout-header-btn:hover, .logout-header-btn:active {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #ef4444 !important;
+}
+
 /* Premium Top Segmented Tabs Navigation */
 .top-tabs-wrapper {
   position: sticky;
-  top: 57px;
+  top: 53px;
   z-index: 45;
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(14px);
