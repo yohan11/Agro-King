@@ -26,9 +26,8 @@ export async function POST(req) {
       return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
     }
 
-    const targetRole = requiredRole || 'Farmer';
-    if (user.role?.toLowerCase() !== targetRole.toLowerCase()) {
-      return NextResponse.json({ error: "Identifiants ou nom d'utilisateur incorrects." }, { status: 401 });
+    if (requiredRole && user.role?.toLowerCase() !== requiredRole.toLowerCase()) {
+      return NextResponse.json({ error: `Identifiants incorrects pour un compte ${requiredRole}.` }, { status: 401 });
     }
 
     const userIdStr = user._id ? user._id.toString() : (user.id ? user.id.toString() : '');

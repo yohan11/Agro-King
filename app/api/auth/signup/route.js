@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 
 export async function POST(req) {
   try {
-    const { phone, password, name, location, coordinates } = await req.json();
+    const { phone, password, name, location, coordinates, role } = await req.json();
     const client = await clientPromise;
     const db = client.db("agroking");
     const users = db.collection("users");
@@ -22,10 +22,12 @@ export async function POST(req) {
       return NextResponse.json({ error: "Un compte existe déjà avec ce numéro" }, { status: 400 });
     }
 
-    const unique_id = "AGRK-" + Math.floor(1000 + Math.random() * 9000);
+    const assignedRole = (role === 'Consumer' || role === 'client') ? 'Consumer' : 'Farmer';
+    const prefix = assignedRole === 'Consumer' ? 'AGRC-' : 'AGRK-';
+    const unique_id = prefix + Math.floor(1000 + Math.random() * 9000);
 
     const result = await users.insertOne({
-      role: "Farmer",
+      role: assignedRole,
       phone: cleanPhone,
       password,
       name,
@@ -39,7 +41,7 @@ export async function POST(req) {
 
     const sessionData = JSON.stringify({
       id: insertedIdStr,
-      role: "Farmer",
+      role: assignedRole,
       name: name,
       phone: cleanPhone,
       unique_id: unique_id

@@ -114,6 +114,7 @@ export async function PATCH(req) {
     if (mortality_count !== undefined) updates.mortality_count = Number(mortality_count);
     if (is_reform !== undefined) updates.is_reform = Boolean(is_reform);
     if (sale_price_per_bird !== undefined) updates.sale_price_per_bird = Number(sale_price_per_bird);
+    if (body.visible_marche !== undefined) updates.visible_marche = Boolean(body.visible_marche);
 
     const updated = await db.updateDocument('cycles', cycleId, updates);
     return NextResponse.json({ success: true, cycle: updated });

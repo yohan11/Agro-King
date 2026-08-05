@@ -11,6 +11,7 @@ function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
+  const [selectedRole, setSelectedRole] = useState('Farmer'); // 'Farmer' ou 'Consumer'
   const [formData, setFormData] = useState({ phone: '', password: '', name: '', location: '', coordinates: null });
   const [signupSuccessData, setSignupSuccessData] = useState(null);
   const [locations, setLocations] = useState([]);
@@ -38,7 +39,13 @@ function AuthContent() {
     fetch('/api/auth/me').then(res => {
       if (res.ok) {
         res.json().then(data => {
-          if (data.user && data.user.role?.toLowerCase() === 'farmer') router.push('/farmer');
+          if (data.user) {
+            if (data.user.role?.toLowerCase() === 'consumer') {
+              router.push('/consumer');
+            } else {
+              router.push('/farmer');
+            }
+          }
         });
       }
     });
@@ -50,8 +57,8 @@ function AuthContent() {
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
     
     const payload = isLogin 
-      ? { ...formData, requiredRole: 'Farmer' }
-      : formData;
+      ? { ...formData }
+      : { ...formData, role: selectedRole };
 
     try {
       const res = await fetch(endpoint, {
@@ -62,7 +69,7 @@ function AuthContent() {
       
       if (res.ok) {
         const data = await res.json();
-        if (!isLogin && data.user.role === 'Farmer') {
+        if (!isLogin) {
           if (formData.location && !locations.some(l => l.name.toLowerCase() === formData.location.toLowerCase())) {
             fetch('/api/locations', {
               method: 'POST',
@@ -70,10 +77,13 @@ function AuthContent() {
               body: JSON.stringify({ name: formData.location })
             }).catch(console.error);
           }
-          
           setSignupSuccessData(data.user);
         } else {
-          router.push('/farmer');
+          if (data.user.role?.toLowerCase() === 'consumer') {
+            router.push('/consumer');
+          } else {
+            router.push('/farmer');
+          }
         }
       } else {
         const data = await res.json();
@@ -88,6 +98,7 @@ function AuthContent() {
   };
 
   if (signupSuccessData) {
+    const isConsumer = signupSuccessData.role?.toLowerCase() === 'consumer';
     return (
       <div className="app-shell">
         <main className="container" style={{ maxWidth: '440px' }}>
@@ -98,23 +109,36 @@ function AuthContent() {
               style={{ width: '76px', height: '76px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 1rem auto', display: 'block', border: '3px solid var(--accent-primary)', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
             />
             <h1 style={{ marginBottom: '0.25rem', color: 'var(--accent-secondary)' }}>Félicitations !</h1>
-            <p className="text-muted" style={{ fontSize: '0.9rem' }}>Votre compte éleveur est prêt.</p>
+            <p className="text-muted" style={{ fontSize: '0.9rem' }}>
+              Votre compte {isConsumer ? 'client consommateur' : 'éleveur avicole'} est prêt.
+            </p>
             
             <div className="panel" style={{ padding: '1.25rem', marginTop: '1.25rem', textAlign: 'center' }}>
               <h3 style={{ color: 'var(--accent-primary)', fontSize: '1.1rem' }}>Compte créé avec succès</h3>
-              <p style={{ margin: '0.75rem 0 0.5rem 0', fontSize: '0.88rem', color: 'var(--text-muted)' }}>Votre identifiant unique éleveur est :</p>
+              <p style={{ margin: '0.75rem 0 0.5rem 0', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+                Votre identifiant unique est :
+              </p>
               <div style={{ fontSize: '1.4rem', fontWeight: '800', background: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '2px dashed var(--accent-primary)', color: 'var(--accent-secondary)', letterSpacing: '0.05em' }}>
                 {signupSuccessData.unique_id}
               </div>
-              <p className="text-muted" style={{ margin: '0.75rem 0', fontSize: '0.8rem' }}>Conservez cet identifiant, il vous servira pour vos commandes et votre suivi.</p>
-              <button onClick={() => { setIsLoading(true); router.push('/farmer'); }} className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
-                Accéder à mon espace éleveur ➔
+              <p className="text-muted" style={{ margin: '0.75rem 0', fontSize: '0.8rem' }}>
+                Conservez cet identifiant, il vous servira pour vos accès et vos opérations.
+              </p>
+              <button 
+                onClick={() => { 
+                  setIsLoading(true); 
+                  router.push(isConsumer ? '/consumer' : '/farmer'); 
+                }} 
+                className="btn btn-primary" 
+                style={{ width: '100%', marginTop: '0.5rem' }}
+              >
+                Accéder à mon espace ➔
               </button>
             </div>
 
             <InstallAppBanner />
 
-            {isLoading && <GlobalLoader text="Ouverture du tableau de bord..." />}
+            {isLoading && <GlobalLoader text="Ouverture de votre espace..." />}
           </div>
         </main>
       </div>
@@ -132,7 +156,7 @@ function AuthContent() {
           />
           <h1 style={{ marginBottom: '0.2rem', color: 'var(--accent-secondary)' }}>AGRO KING</h1>
           <p className="text-muted" style={{ fontSize: '0.88rem', lineHeight: 1.3, maxWidth: '320px', margin: '0 auto' }}>
-            La solution complète pour vos poussins et aliments d'élevage.
+            Packs de poussins, alimentation & volaille prête à consommer.
           </p>
         </div>
 
@@ -141,7 +165,7 @@ function AuthContent() {
         {/* Main Auth Card */}
         <div className="panel" style={{ padding: '1.25rem' }}>
           
-          {/* Segmented Switcher */}
+          {/* Segmented Switcher : Connexion vs Inscription */}
           <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', marginBottom: '1.25rem' }}>
             <button 
               type="button" 
@@ -184,13 +208,66 @@ function AuthContent() {
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            
+            {/* SÉLECTEUR DE TYPE DE COMPTE (Visible à l'inscription) */}
+            {!isLogin && (
+              <div style={{ marginBottom: '0.35rem' }}>
+                <label className="label" style={{ fontWeight: '700', marginBottom: '0.4rem', display: 'block', color: '#1e293b' }}>
+                  Je souhaite m'inscrire en tant que :
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('Farmer')}
+                    style={{
+                      padding: '0.75rem 0.5rem',
+                      borderRadius: '12px',
+                      border: selectedRole === 'Farmer' ? '2px solid #16a34a' : '1px solid #e2e8f0',
+                      background: selectedRole === 'Farmer' ? '#f0fdf4' : '#ffffff',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ fontSize: '1.4rem', marginBottom: '0.2rem' }}>👨‍🌾</div>
+                    <strong style={{ fontSize: '0.82rem', color: selectedRole === 'Farmer' ? '#15803d' : '#334155', display: 'block' }}>
+                      Éleveur Avicole
+                    </strong>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Packs & Caisse</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('Consumer')}
+                    style={{
+                      padding: '0.75rem 0.5rem',
+                      borderRadius: '12px',
+                      border: selectedRole === 'Consumer' ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                      background: selectedRole === 'Consumer' ? '#f0f9ff' : '#ffffff',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ fontSize: '1.4rem', marginBottom: '0.2rem' }}>🍗</div>
+                    <strong style={{ fontSize: '0.82rem', color: selectedRole === 'Consumer' ? '#0369a1' : '#334155', display: 'block' }}>
+                      Client / Événement
+                    </strong>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Épargne & Marché</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {!isLogin && (
               <>
                 <div>
-                  <label className="label">Nom complet de l'éleveur</label>
+                  <label className="label">
+                    {selectedRole === 'Farmer' ? "Nom complet de l'éleveur" : "Nom complet ou Structure / Traiteur"}
+                  </label>
                   <input 
                     type="text" 
-                    placeholder="Ex: Jean Dupont" 
+                    placeholder={selectedRole === 'Farmer' ? "Ex: Jean Dupont" : "Ex: Marie Ngo (Restaurant Le Festin)"} 
                     className="input" 
                     required 
                     value={formData.name} 
@@ -199,7 +276,9 @@ function AuthContent() {
                 </div>
                 
                 <div>
-                  <label className="label">Ville ou Quartier</label>
+                  <label className="label">
+                    {selectedRole === 'Farmer' ? "Ville ou Quartier de la ferme" : "Ville ou Quartier de livraison"}
+                  </label>
                   <input 
                     type="text" 
                     list="locations-list" 
@@ -216,20 +295,22 @@ function AuthContent() {
                   </datalist>
                 </div>
 
-                <div>
-                  <label className="label">Position exacte de la ferme (GPS)</label>
-                  <MapPicker 
-                    coordinates={formData.coordinates} 
-                    onLocationSelect={(coords) => setFormData({...formData, coordinates: coords})} 
-                    onAddressResolve={(addr) => setFormData(prev => ({...prev, location: addr}))}
-                    autoGPS={true}
-                  />
-                </div>
+                {selectedRole === 'Farmer' && (
+                  <div>
+                    <label className="label">Position exacte de la ferme (GPS)</label>
+                    <MapPicker 
+                      coordinates={formData.coordinates} 
+                      onLocationSelect={(coords) => setFormData({...formData, coordinates: coords})} 
+                      onAddressResolve={(addr) => setFormData(prev => ({...prev, location: addr}))}
+                      autoGPS={true}
+                    />
+                  </div>
+                )}
               </>
             )}
 
             <div>
-              <label className="label">{isLogin ? "Téléphone ou Identifiant AGRK" : "Numéro de Téléphone"}</label>
+              <label className="label">{isLogin ? "Téléphone ou Identifiant (AGRK- / AGRC-)" : "Numéro de Téléphone"}</label>
               <input 
                 type="text" 
                 placeholder={isLogin ? "Ex: 699123456 ou AGRK-1234" : "Ex: 699123456"} 

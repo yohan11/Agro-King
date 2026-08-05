@@ -418,14 +418,6 @@ export default function FarmerDashboard() {
           </button>
 
           <button 
-            onClick={() => setActiveTab('consumer')} 
-            className={`top-tab-btn ${activeTab === 'consumer' ? 'active' : ''}`}
-          >
-            <span className="tab-icon">🛒</span>
-            <span className="tab-label">Épargne/Marché</span>
-          </button>
-
-          <button 
             onClick={() => setActiveTab('orders')} 
             className={`top-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
           >
@@ -1056,13 +1048,51 @@ export default function FarmerDashboard() {
                                 🏆 Prolonger en Réforme (Poulets Lourds 60J)
                               </strong>
                               <p style={{ fontSize: '0.78rem', color: '#701a75', marginBottom: '0.5rem', lineHeight: 1.3 }}>
-                                Vendez vos poulets plus lourds à <strong>~6 500 FCFA</strong> au lieu de 3 500 FCFA.
+                                Vendez vos poulets plus lourds à <strong>~6 500 FCFA</strong> au lieu de 3 700 FCFA.
                               </p>
                               <button onClick={() => handleActivateReformOnCycle(c)} className="btn btn-primary btn-sm" style={{ width: '100%', background: '#a21caf', borderColor: '#a21caf' }}>
                                 ⭐ Activer l'Extension Réforme (+4 sacs)
                               </button>
                             </div>
                           )}
+
+                          {/* Visibilité Marché AgroKing pour les acheteurs & traiteurs */}
+                          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '0.85rem', borderRadius: '10px', marginTop: '0.65rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                              <strong style={{ color: '#0369a1', fontSize: '0.85rem' }}>
+                                🏪 Visibilité Marché AgroKing
+                              </strong>
+                              <span className="badge" style={{ background: c.visible_marche !== false ? '#dcfce7' : '#f1f5f9', color: c.visible_marche !== false ? '#15803d' : '#64748b', fontSize: '0.72rem' }}>
+                                {c.visible_marche !== false ? 'Actif sur Marché 🟢' : 'Privé 🔒'}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '0.78rem', color: '#0c4a6e', marginBottom: '0.5rem', lineHeight: 1.3 }}>
+                              {c.visible_marche !== false 
+                                ? 'Ce lot est actuellement visible par les acheteurs et réservations d\'événements AgroKing.' 
+                                : 'Ce lot est réservé à votre propre commercialisation.'}
+                            </p>
+                            <button 
+                              onClick={async () => {
+                                const newStatus = c.visible_marche === false ? true : false;
+                                try {
+                                  await fetch(`/api/cycles`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ cycleId: c.id || c._id, visible_marche: newStatus })
+                                  });
+                                  alert(newStatus ? '🎉 Votre lot est maintenant visible sur le Marché AgroKing !' : '🔒 Lot retiré de la visibilité publique.');
+                                  // Refresh
+                                  window.location.reload();
+                                } catch {
+                                  alert('Erreur lors de la mise à jour.');
+                                }
+                              }} 
+                              className="btn btn-outline btn-sm" 
+                              style={{ width: '100%', fontSize: '0.78rem', borderColor: '#0284c7', color: '#0284c7' }}
+                            >
+                              {c.visible_marche !== false ? '🔒 Retirer de la vitrine Marché' : '📣 Proposer aux Acheteurs & Traiteurs'}
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
