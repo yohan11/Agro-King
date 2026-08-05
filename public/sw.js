@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agro-king-v4';
+const CACHE_NAME = 'agro-king-v5';
 const STATIC_ASSETS = [
   '/',
   '/manifest.webmanifest',

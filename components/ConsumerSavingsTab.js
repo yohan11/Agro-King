@@ -579,9 +579,9 @@ export default function ConsumerSavingsTab({ user }) {
                 marginBottom: '1.25rem'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#0369a1', fontWeight: '600' }}>Budget Total Estimé (à 3 500 F/poulet) :</span>
+                  <span style={{ fontSize: '0.82rem', color: '#0369a1', fontWeight: '600' }}>Budget Total Estimé (à 3 700 F/poulet) :</span>
                   <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0284c7' }}>
-                    {(Number(quantitePoulets || 0) * 3500).toLocaleString('fr-FR')} FCFA
+                    {(Number(quantitePoulets || 0) * 3700).toLocaleString('fr-FR')} FCFA
                   </span>
                 </div>
               </div>

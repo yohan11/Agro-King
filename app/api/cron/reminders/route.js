@@ -37,25 +37,32 @@ async function handleReminders() {
       let reminderMessage = null;
       let reminderStage = null;
 
-      // 2 to 3 days before Day 14 (Day 11-12)
-      if (diffDays >= 11 && diffDays <= 12) {
-        reminderStage = 'Croissance (Jour 14)';
-        reminderMessage = `⚡ Rappel AgroKing : Dans 2 à 3 jours (Jour 14), vos poussins passeront à l'Aliment Croissance. Préparez le vaccin Newcastle !`;
-      } 
-      // 2 to 3 days before Day 28 (Day 25-26)
-      else if (diffDays >= 25 && diffDays <= 26) {
-        reminderStage = 'Finition (Jour 28)';
-        reminderMessage = `⚡ Rappel AgroKing : Dans 2 à 3 jours (Jour 28), vos volailles passeront à l'Aliment Finition pour maximiser la rentabilité.`;
-      } 
-      // 2 to 3 days before Day 42 (Day 39-40)
-      else if (diffDays >= 39 && diffDays <= 40) {
-        reminderStage = 'Vente & Fin de Cycle (Jour 42)';
-        reminderMessage = `🎉 Rappel AgroKing : Dans 2 à 3 jours (Jour 42), votre cycle sera terminé. Préparez la commercialisation de vos poulets !`;
-      }
-      // Demo fallback: if triggered manually for any active cycle
-      else if (diffDays < 11) {
-        reminderStage = 'Prochaine Étape (Jour 14)';
-        reminderMessage = `⚡ Rappel AgroKing (Cycle Jour ${diffDays}/42) : Prochaine étape Aliment Croissance & Vaccin dans ${14 - diffDays} jours !`;
+      // Calendrier Quotidien des Conseils et Étapes du Bot AgroKing (J1 à J45)
+      const DAILY_ADVICE = {
+        1: { stage: "Démarrage & Chauffage (J1)", msg: "🐥 Jour 1 : Température à 32-35°C, distribuez de l'eau tiède avec vitamines antistress + aliment démarrage sur alvéoles." },
+        2: { stage: "Contrôle du Jabot (J2)", msg: "🔎 Jour 2 : Vérifiez les jabots des poussins le matin. 95% doivent être pleins et souples (signe d'un bon démarrage)." },
+        3: { stage: "Vaccination HB1 (J3)", msg: "💉 Jour 3 : Administration du 1er vaccin Newcastle (HB1 / Clon 30) par goutte oculaire ou eau sans chlore." },
+        5: { stage: "Gestion de la litière (J5)", msg: "🌾 Jour 5 : Retournez la litière sous les abreuvoirs pour éviter toute humidité propice aux coccidioses." },
+        7: { stage: "Vaccin Gumboro 1 & Pesée (J7)", msg: "💉 Jour 7 : 1er vaccin Gumboro dans l'eau de boisson + 1ère pesée témoin (cible : 160-180g)." },
+        10: { stage: "Aération & Densité (J10)", msg: "💨 Jour 10 : Élargissez l'espace de garde et aérez sans créer de courant d'air direct sur les poussins." },
+        12: { stage: "Préparation Croissance (J12)", msg: "🥣 Jour 12 : Dans 2 jours, transition vers l'aliment Croissance. Préparez vos mangeoires trémies." },
+        14: { stage: "Transition Aliment Croissance & Gumboro 2 (J14)", msg: "🔄 Jour 14 : Rappel vaccin Gumboro 2. Démarrez la transition alimentaire (50% Démarrage / 50% Croissance)." },
+        18: { stage: "Surveillance Coccidiose (J18)", msg: "🔬 Jour 18 : Surveillez l'aspect des fientes. Distribuez un hépato-protecteur ou anticoccidien préventif si besoin." },
+        21: { stage: "Rappel Newcastle Lasota (J21)", msg: "💉 Jour 21 : Rappel vaccin Newcastle souche Lasota. Les besoins en eau augmentent, multipliez les abreuvoirs." },
+        25: { stage: "Préparation Finition (J25)", msg: "🥣 Jour 25 : Dans 3 jours, passage à l'aliment Finition. Vos poulets entrent dans la phase de prise de masse rapide." },
+        28: { stage: "Transition Aliment Finition (J28)", msg: "🍗 Jour 28 : Passage à l'Aliment Finition AgroKing. Assurez une distribution d'eau fraîche à volonté." },
+        32: { stage: "Contrôle Poids & Température (J32)", msg: "⚖️ Jour 32 : Pesez un échantillon de 10 poulets. Cible moyenne : 1.5 kg à 1.7 kg." },
+        35: { stage: "Ventilation Nocturne (J35)", msg: "🌙 Jour 35 : Attention aux coups de chaleur en journée. Distribuez des électrolytes / vitamines C aux heures chaudes." },
+        39: { stage: "Arrêt Médications (J39)", msg: "⛔ Jour 39 : Arrêt strict de tout antibiotique ou traitement pour respecter le délai d'attente avant commercialisation." },
+        42: { stage: "Maturité & Vente (J42)", msg: "🎉 Jour 42 : Vos poulets sont prêts pour l'abattage et la vente (2.0 à 2.5 kg). Contactez le réseau AgroKing pour l'écoulement !" }
+      };
+
+      if (DAILY_ADVICE[diffDays]) {
+        reminderStage = DAILY_ADVICE[diffDays].stage;
+        reminderMessage = DAILY_ADVICE[diffDays].msg;
+      } else if (diffDays <= 45) {
+        reminderStage = `Suivi Élevage (Jour ${diffDays}/42)`;
+        reminderMessage = `📊 AgroBot (Jour ${diffDays}/42) : Contrôlez la propreté de l'eau, l'éclairage et la consommation d'aliments. Tous vos indicateurs sont au vert !`;
       }
 
       if (reminderMessage) {

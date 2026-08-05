@@ -414,7 +414,7 @@ export default function FarmerDashboard() {
             className={`top-tab-btn ${activeTab === 'savings' ? 'active' : ''}`}
           >
             <span className="tab-icon">💰</span>
-            <span className="tab-label">Caisse 75%</span>
+            <span className="tab-label">Caisse</span>
           </button>
 
           <button 

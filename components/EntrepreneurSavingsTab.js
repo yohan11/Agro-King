@@ -1,9 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 const PACK_PRICES = {
-  'pack-100': { name: 'Pack 100 Poussins', price: 270000, chicksCount: 100 },
-  'pack-200': { name: 'Pack 200 Poussins', price: 540000, chicksCount: 200 },
-  'pack-500': { name: 'Pack 500 Poussins', price: 1350000, chicksCount: 500 }
+  'pack-100': { name: 'Pack 100 Poussins', price: 280000, chicksCount: 100 },
+  'pack-200': { name: 'Pack 200 Poussins', price: 560000, chicksCount: 200 },
+  'pack-500': { name: 'Pack 500 Poussins', price: 1400000, chicksCount: 500 }
 };
 
 export default function EntrepreneurSavingsTab({ user }) {
